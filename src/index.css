@@ -2,108 +2,108 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Design System für Gesundheitsorganisationen - Professionelles Blau/Grün Schema */
+/* Design System für FM Recruiting - Corporate Identity */
 
 @layer base {
   :root {
-    --background: 210 33% 98%;
-    --foreground: 210 50% 10%;
+    --background: 180 25% 97%;
+    --foreground: 180 30% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 210 50% 10%;
+    --card-foreground: 180 30% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 210 50% 10%;
+    --popover-foreground: 180 30% 15%;
 
-    --primary: 199 89% 38%;
+    --primary: 174 84% 32%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 160 60% 45%;
+    --secondary: 10 72% 58%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 20% 94%;
-    --muted-foreground: 210 20% 40%;
+    --muted: 180 15% 93%;
+    --muted-foreground: 180 15% 40%;
 
-    --accent: 199 89% 95%;
-    --accent-foreground: 199 89% 28%;
+    --accent: 174 60% 94%;
+    --accent-foreground: 174 84% 25%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 71% 45%;
+    --success: 174 84% 32%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 210 20% 88%;
-    --input: 210 20% 88%;
-    --ring: 199 89% 38%;
+    --border: 180 15% 88%;
+    --input: 180 15% 88%;
+    --ring: 174 84% 32%;
 
     --radius: 0.5rem;
 
     /* Wizard-spezifische Farben */
-    --step-active: 199 89% 38%;
-    --step-complete: 142 71% 45%;
-    --step-pending: 210 20% 80%;
+    --step-active: 174 84% 32%;
+    --step-complete: 174 84% 32%;
+    --step-pending: 180 15% 80%;
 
     --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 199 89% 38%;
+    --sidebar-foreground: 180 30% 26%;
+    --sidebar-primary: 174 84% 32%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 199 89% 95%;
-    --sidebar-accent-foreground: 199 89% 28%;
-    --sidebar-border: 210 20% 88%;
-    --sidebar-ring: 199 89% 38%;
+    --sidebar-accent: 174 60% 94%;
+    --sidebar-accent-foreground: 174 84% 25%;
+    --sidebar-border: 180 15% 88%;
+    --sidebar-ring: 174 84% 32%;
   }
 
   .dark {
-    --background: 210 50% 8%;
-    --foreground: 210 20% 95%;
+    --background: 180 30% 8%;
+    --foreground: 180 15% 95%;
 
-    --card: 210 50% 12%;
-    --card-foreground: 210 20% 95%;
+    --card: 180 30% 12%;
+    --card-foreground: 180 15% 95%;
 
-    --popover: 210 50% 12%;
-    --popover-foreground: 210 20% 95%;
+    --popover: 180 30% 12%;
+    --popover-foreground: 180 15% 95%;
 
-    --primary: 199 89% 48%;
+    --primary: 174 84% 42%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 160 60% 40%;
+    --secondary: 10 72% 55%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 30% 20%;
-    --muted-foreground: 210 20% 65%;
+    --muted: 180 25% 20%;
+    --muted-foreground: 180 15% 65%;
 
-    --accent: 199 50% 20%;
-    --accent-foreground: 199 89% 70%;
+    --accent: 174 40% 20%;
+    --accent-foreground: 174 84% 70%;
 
     --destructive: 0 72% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 60% 40%;
+    --success: 174 84% 38%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 80% 45%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 210 30% 25%;
-    --input: 210 30% 25%;
-    --ring: 199 89% 48%;
+    --border: 180 25% 25%;
+    --input: 180 25% 25%;
+    --ring: 174 84% 42%;
 
-    --step-active: 199 89% 48%;
-    --step-complete: 142 60% 40%;
-    --step-pending: 210 30% 35%;
+    --step-active: 174 84% 42%;
+    --step-complete: 174 84% 38%;
+    --step-pending: 180 25% 35%;
 
-    --sidebar-background: 210 50% 10%;
-    --sidebar-foreground: 210 20% 90%;
-    --sidebar-primary: 199 89% 48%;
+    --sidebar-background: 180 30% 10%;
+    --sidebar-foreground: 180 15% 90%;
+    --sidebar-primary: 174 84% 42%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 199 50% 20%;
-    --sidebar-accent-foreground: 199 89% 70%;
-    --sidebar-border: 210 30% 25%;
-    --sidebar-ring: 199 89% 48%;
+    --sidebar-accent: 174 40% 20%;
+    --sidebar-accent-foreground: 174 84% 70%;
+    --sidebar-border: 180 25% 25%;
+    --sidebar-ring: 174 84% 42%;
   }
 }
 
