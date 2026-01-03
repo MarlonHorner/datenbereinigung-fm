@@ -246,6 +246,7 @@ const StepOverview = () => {
                     <TableHead className="hidden md:table-cell">Adresse</TableHead>
                     <TableHead>Träger</TableHead>
                     <TableHead className="hidden lg:table-cell">Ansprechpersonen</TableHead>
+                    <TableHead className="hidden lg:table-cell">E-Mail</TableHead>
                     <TableHead className="hidden xl:table-cell">Heyflows</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -269,6 +270,13 @@ const StepOverview = () => {
                               <Badge key={c.id} variant="secondary" className="text-xs">
                                 {c.name}
                               </Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <div className="flex flex-col gap-0.5 text-sm text-muted-foreground">
+                            {contacts.map(c => (
+                              <span key={c.id}>{c.email}</span>
                             ))}
                           </div>
                         </TableCell>
