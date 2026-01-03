@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { WizardProvider, useWizard } from '@/context/WizardContext';
 import WizardStepper from '@/components/WizardStepper';
 import WizardNavigation from '@/components/WizardNavigation';
@@ -9,18 +10,45 @@ import StepContacts from '@/components/steps/StepContacts';
 import StepHeyflows from '@/components/steps/StepHeyflows';
 import StepOverview from '@/components/steps/StepOverview';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Heart } from 'lucide-react';
-import { clearWizardState } from '@/lib/storage';
+import { Badge } from '@/components/ui/badge';
+import { RefreshCw, Heart, Save, CheckCircle2 } from 'lucide-react';
+import { clearWizardState, saveWizardState, loadWizardState } from '@/lib/storage';
+import { WIZARD_STEPS } from '@/types/organization';
+import { toast } from 'sonner';
 
 const WizardContent = () => {
   const { state, dispatch } = useWizard();
   const { currentStep } = state;
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+
+  // Auto-save bei Änderungen
+  useEffect(() => {
+    if (state.isDataLoaded) {
+      saveWizardState(state);
+      setLastSaved(new Date());
+    }
+  }, [state]);
 
   const handleReset = () => {
     if (confirm('Möchten Sie wirklich alle Daten löschen und von vorne beginnen?')) {
       clearWizardState();
       dispatch({ type: 'RESET' });
+      setLastSaved(null);
+      toast.success('Alle Daten wurden gelöscht');
     }
+  };
+
+  const handleManualSave = () => {
+    saveWizardState(state);
+    setLastSaved(new Date());
+    setShowSaveConfirm(true);
+    toast.success('Fortschritt gespeichert');
+    setTimeout(() => setShowSaveConfirm(false), 2000);
+  };
+
+  const formatLastSaved = (date: Date) => {
+    return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
   };
 
   const renderStep = () => {
@@ -62,12 +90,41 @@ const WizardContent = () => {
               </div>
             </div>
             
-            {state.isDataLoaded && (
-              <Button variant="ghost" size="sm" onClick={handleReset} className="gap-2">
-                <RefreshCw className="w-4 h-4" />
-                Zurücksetzen
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {state.isDataLoaded && (
+                <>
+                  {/* Speicher-Status */}
+                  <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground mr-2">
+                    {lastSaved && (
+                      <span className="flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-green-500" />
+                        Gespeichert um {formatLastSaved(lastSaved)}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Manueller Speichern-Button */}
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleManualSave} 
+                    className="gap-2"
+                  >
+                    {showSaveConfirm ? (
+                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    <span className="hidden sm:inline">Speichern</span>
+                  </Button>
+
+                  <Button variant="ghost" size="sm" onClick={handleReset} className="gap-2">
+                    <RefreshCw className="w-4 h-4" />
+                    <span className="hidden sm:inline">Zurücksetzen</span>
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
