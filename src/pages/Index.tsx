@@ -10,11 +10,11 @@ import StepContacts from '@/components/steps/StepContacts';
 import StepHeyflows from '@/components/steps/StepHeyflows';
 import StepOverview from '@/components/steps/StepOverview';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { RefreshCw, Heart, Save, CheckCircle2 } from 'lucide-react';
-import { clearWizardState, saveWizardState, loadWizardState } from '@/lib/storage';
+import { RefreshCw, Save, CheckCircle2 } from 'lucide-react';
+import { clearWizardState, saveWizardState } from '@/lib/storage';
 import { WIZARD_STEPS } from '@/types/organization';
 import { toast } from 'sonner';
+import fmLogo from '@/assets/fm-logo.svg';
 
 const WizardContent = () => {
   const { state, dispatch } = useWizard();
@@ -81,9 +81,7 @@ const WizardContent = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                <Heart className="w-5 h-5 text-primary-foreground" />
-              </div>
+              <img src={fmLogo} alt="FM Recruiting" className="h-10" />
               <div>
                 <h1 className="text-lg font-bold text-foreground">Datenbereinigung</h1>
                 <p className="text-sm text-muted-foreground">Gesundheitsorganisationen</p>
