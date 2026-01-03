@@ -279,12 +279,19 @@ const StepOverview = () => {
                           </div>
                         </TableCell>
                         <TableCell className="hidden xl:table-cell">
-                          <div className="flex flex-wrap gap-1">
+                          <div className="flex flex-col gap-0.5 text-sm">
                             {hfs.map(h => (
-                              <Badge key={h.id} variant="outline" className="text-xs">
-                                {h.designation}
-                              </Badge>
+                              <a 
+                                key={h.id} 
+                                href={h.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline truncate max-w-[200px]"
+                              >
+                                {h.url}
+                              </a>
                             ))}
+                            {hfs.length === 0 && <span className="text-muted-foreground">-</span>}
                           </div>
                         </TableCell>
                       </TableRow>
