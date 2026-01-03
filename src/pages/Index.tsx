@@ -84,7 +84,7 @@ const WizardContent = () => {
               <img src={fmLogo} alt="FM Recruiting" className="h-10" />
               <div>
                 <h1 className="text-lg font-bold text-foreground">Datenbereinigung</h1>
-                <p className="text-sm text-muted-foreground">Gesundheitsorganisationen</p>
+                <p className="text-sm text-muted-foreground">FM-Kundendaten</p>
               </div>
             </div>
             
@@ -145,7 +145,7 @@ const WizardContent = () => {
       {/* Footer */}
       <footer className="border-t border-border py-4 mt-8">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          Datenbereinigung für Gesundheitsorganisationen
+          Datenbereinigung FM-Kundendaten
         </div>
       </footer>
     </div>
