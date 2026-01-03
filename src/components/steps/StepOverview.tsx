@@ -245,7 +245,7 @@ const StepOverview = () => {
                     <TableHead>Trägerorganisation</TableHead>
                     <TableHead className="hidden lg:table-cell">Ansprechpersonen</TableHead>
                     <TableHead className="hidden lg:table-cell">E-Mail</TableHead>
-                    <TableHead className="hidden xl:table-cell">Heyflows</TableHead>
+                    <TableHead className="hidden lg:table-cell">Heyflows</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -278,7 +278,7 @@ const StepOverview = () => {
                             ))}
                           </div>
                         </TableCell>
-                        <TableCell className="hidden xl:table-cell">
+                        <TableCell className="hidden lg:table-cell">
                           <div className="flex flex-col gap-0.5 text-sm">
                             {hfs.map(h => (
                               <a 
