@@ -1,12 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Download, Building2, Home, Users, Mail, Link2, ChevronDown, Search, FileSpreadsheet, FileJson } from 'lucide-react';
+import { Download, Building2, Home, Users, Mail, Link2, Search, FileSpreadsheet, FileJson } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useWizard } from '@/context/WizardContext';
 import { cn } from '@/lib/utils';
 
@@ -15,7 +14,6 @@ const StepOverview = () => {
   const { organizations, contactPersons, heyflows } = state;
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [expandedTraegerId, setExpandedTraegerId] = useState<string | null>(null);
 
   const traeger = useMemo(() => 
     organizations.filter(o => o.type === 'traeger'),
@@ -244,7 +242,7 @@ const StepOverview = () => {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead className="hidden md:table-cell">Adresse</TableHead>
-                    <TableHead>Träger</TableHead>
+                    <TableHead>Trägerorganisation</TableHead>
                     <TableHead className="hidden lg:table-cell">Ansprechpersonen</TableHead>
                     <TableHead className="hidden lg:table-cell">E-Mail</TableHead>
                     <TableHead className="hidden xl:table-cell">Heyflows</TableHead>
@@ -299,74 +297,46 @@ const StepOverview = () => {
         </TabsContent>
 
         <TabsContent value="traeger" className="mt-4">
-          <div className="space-y-3">
-            {filteredTraeger.map((t) => {
-              const tEinrichtungen = getEinrichtungenForTraeger(t.id);
-              const isExpanded = expandedTraegerId === t.id;
-              
-              return (
-                <Card key={t.id}>
-                  <Collapsible open={isExpanded} onOpenChange={() => setExpandedTraegerId(isExpanded ? null : t.id)}>
-                    <CardContent className="p-4">
-                      <CollapsibleTrigger className="w-full">
-                        <div className="flex items-center justify-between">
-                          <div className="text-left">
-                            <h3 className="font-medium">{t.name}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {t.street}, {t.zipCode} {t.city}
-                            </p>
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead className="hidden md:table-cell">Adresse</TableHead>
+                    <TableHead>Einrichtungen</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTraeger.map((t) => {
+                    const tEinrichtungen = getEinrichtungenForTraeger(t.id);
+                    
+                    return (
+                      <TableRow key={t.id}>
+                        <TableCell className="font-medium">{t.name}</TableCell>
+                        <TableCell className="hidden md:table-cell text-muted-foreground">
+                          {t.street}, {t.zipCode} {t.city}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {tEinrichtungen.length > 0 ? (
+                              tEinrichtungen.map(e => (
+                                <Badge key={e.id} variant="secondary" className="text-xs">
+                                  {e.name}
+                                </Badge>
+                              ))
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
                           </div>
-                          <div className="flex items-center gap-3">
-                            <Badge variant="secondary">
-                              {tEinrichtungen.length} Einrichtung(en)
-                            </Badge>
-                            <ChevronDown className={cn(
-                              'w-5 h-5 text-muted-foreground transition-transform',
-                              isExpanded && 'rotate-180'
-                            )} />
-                          </div>
-                        </div>
-                      </CollapsibleTrigger>
-                      
-                      <CollapsibleContent className="mt-4">
-                        {tEinrichtungen.length > 0 ? (
-                          <div className="bg-muted/50 rounded-lg p-4">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Einrichtung</TableHead>
-                                  <TableHead>Stadt</TableHead>
-                                  <TableHead>Ansprechpersonen</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {tEinrichtungen.map((e) => {
-                                  const contacts = getContacts(e.contactPersonIds);
-                                  return (
-                                    <TableRow key={e.id}>
-                                      <TableCell className="font-medium">{e.name}</TableCell>
-                                      <TableCell className="text-muted-foreground">{e.city}</TableCell>
-                                      <TableCell>
-                                        {contacts.map(c => c.name).join(', ') || '-'}
-                                      </TableCell>
-                                    </TableRow>
-                                  );
-                                })}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">
-                            Keine Einrichtungen zugeordnet.
-                          </p>
-                        )}
-                      </CollapsibleContent>
-                    </CardContent>
-                  </Collapsible>
-                </Card>
-              );
-            })}
-          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
