@@ -54,12 +54,13 @@ const StepAssign = () => {
     dispatch({ 
       type: 'UPDATE_ORGANIZATION', 
       id: einrichtungId, 
-      updates: { parentOrganizationId: traegerId } 
+      updates: { parentOrganizationId: traegerId === 'no-traeger' ? 'no-traeger' : traegerId } 
     });
   };
 
   const getTraegerName = (id?: string) => {
     if (!id) return null;
+    if (id === 'no-traeger') return 'Kein Träger';
     return traeger.find(t => t.id === id)?.name;
   };
 
@@ -134,7 +135,10 @@ const StepAssign = () => {
                       {assignedTraeger && (
                         <div className="flex items-center gap-2 mt-2">
                           <Link2 className="w-4 h-4 text-primary" />
-                          <Badge variant="default" className="gap-1">
+                          <Badge 
+                            variant={einrichtung.parentOrganizationId === 'no-traeger' ? 'secondary' : 'default'} 
+                            className="gap-1"
+                          >
                             <Check className="w-3 h-3" />
                             {assignedTraeger}
                           </Badge>
@@ -151,6 +155,9 @@ const StepAssign = () => {
                           <SelectValue placeholder="Träger wählen..." />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="no-traeger" className="text-muted-foreground italic">
+                            Kein Träger
+                          </SelectItem>
                           {traeger.map((t) => (
                             <SelectItem key={t.id} value={t.id}>
                               {t.name}
