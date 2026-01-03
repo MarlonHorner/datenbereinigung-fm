@@ -1,12 +1,21 @@
 import React, { useCallback, useState } from 'react';
-import { Upload, FileSpreadsheet, AlertCircle, X } from 'lucide-react';
+import { Upload, FileSpreadsheet, AlertCircle, X, Users } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useWizard } from '@/context/WizardContext';
-import { parseCSV, detectColumns, csvToOrganizations, detectHeyflowColumns, csvToHeyflows, ParsedCSVRow } from '@/lib/csv-parser';
+import { 
+  parseCSV, 
+  detectColumns, 
+  csvToOrganizations, 
+  detectHeyflowColumns, 
+  csvToHeyflows,
+  detectContactColumns,
+  csvToContactPersons,
+  ParsedCSVRow 
+} from '@/lib/csv-parser';
 import { cn } from '@/lib/utils';
 
 interface FileUploadState {
@@ -36,10 +45,18 @@ const StepUpload = () => {
     error: null,
   });
 
+  const [contactFile, setContactFile] = useState<FileUploadState>({
+    file: null,
+    rows: [],
+    headers: [],
+    columnMapping: {},
+    error: null,
+  });
+
   const handleFileDrop = useCallback((
     e: React.DragEvent<HTMLDivElement>,
     setter: React.Dispatch<React.SetStateAction<FileUploadState>>,
-    type: 'main' | 'heyflow'
+    type: 'main' | 'heyflow' | 'contact'
   ) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
@@ -49,7 +66,7 @@ const StepUpload = () => {
   const handleFileSelect = useCallback((
     e: React.ChangeEvent<HTMLInputElement>,
     setter: React.Dispatch<React.SetStateAction<FileUploadState>>,
-    type: 'main' | 'heyflow'
+    type: 'main' | 'heyflow' | 'contact'
   ) => {
     const file = e.target.files?.[0];
     if (file) processFile(file, setter, type);
@@ -58,7 +75,7 @@ const StepUpload = () => {
   const processFile = async (
     file: File,
     setter: React.Dispatch<React.SetStateAction<FileUploadState>>,
-    type: 'main' | 'heyflow'
+    type: 'main' | 'heyflow' | 'contact'
   ) => {
     if (!file.name.endsWith('.csv')) {
       setter(prev => ({ ...prev, error: 'Bitte wählen Sie eine CSV-Datei aus.' }));
@@ -75,15 +92,21 @@ const StepUpload = () => {
       }
 
       const headers = Object.keys(rows[0]);
-      const detected = type === 'main' 
-        ? detectColumns(headers)
-        : detectHeyflowColumns(headers);
+      let detected: Record<string, string>;
+      
+      if (type === 'main') {
+        detected = detectColumns(headers) as Record<string, string>;
+      } else if (type === 'heyflow') {
+        detected = detectHeyflowColumns(headers) as Record<string, string>;
+      } else {
+        detected = detectContactColumns(headers) as Record<string, string>;
+      }
 
       setter({
         file,
         rows,
         headers,
-        columnMapping: detected as Record<string, string>,
+        columnMapping: detected,
         error: null,
       });
     } catch (error) {
@@ -135,6 +158,16 @@ const StepUpload = () => {
         dispatch({ type: 'SET_HEYFLOWS', heyflows });
       }
     }
+
+    // Ansprechpersonen-Datei verarbeiten
+    if (contactFile.rows.length > 0) {
+      const mapping = contactFile.columnMapping as { name: string; email: string };
+      
+      if (mapping.name && mapping.email) {
+        const contacts = csvToContactPersons(contactFile.rows, mapping);
+        dispatch({ type: 'SET_CONTACT_PERSONS', contactPersons: contacts });
+      }
+    }
   };
 
   const isMainFileReady = mainFile.file && 
@@ -152,37 +185,131 @@ const StepUpload = () => {
         </p>
       </div>
 
+      {/* Hauptdatei Upload */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <FileSpreadsheet className="w-5 h-5 text-primary" />
+            Hauptdatei (Pflicht)
+          </CardTitle>
+          <CardDescription>
+            CSV mit Organisationen/Einrichtungen (Name, Straße, PLZ, Stadt)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!mainFile.file ? (
+            <div
+              onDrop={(e) => handleFileDrop(e, setMainFile, 'main')}
+              onDragOver={(e) => e.preventDefault()}
+              className={cn(
+                'border-2 border-dashed rounded-lg p-8 text-center cursor-pointer',
+                'hover:border-primary hover:bg-accent/50 transition-colors',
+                'border-muted-foreground/25'
+              )}
+            >
+              <input
+                type="file"
+                accept=".csv"
+                onChange={(e) => handleFileSelect(e, setMainFile, 'main')}
+                className="hidden"
+                id="main-file"
+              />
+              <label htmlFor="main-file" className="cursor-pointer">
+                <Upload className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+                <p className="text-sm font-medium">CSV-Datei hierher ziehen</p>
+                <p className="text-xs text-muted-foreground mt-1">oder klicken zum Auswählen</p>
+              </label>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-accent/50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <FileSpreadsheet className="w-5 h-5 text-primary" />
+                  <span className="text-sm font-medium truncate max-w-[180px]">
+                    {mainFile.file.name}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    ({mainFile.rows.length} Zeilen)
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeFile(setMainFile)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* Spalten-Zuordnung */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Spaltenzuordnung</Label>
+                {['name', 'street', 'zipCode', 'city'].map((field) => (
+                  <div key={field} className="flex items-center gap-3">
+                    <span className="text-sm w-20 capitalize">
+                      {field === 'zipCode' ? 'PLZ' : 
+                       field === 'street' ? 'Straße' :
+                       field === 'city' ? 'Stadt' : 'Name'}:
+                    </span>
+                    <Select
+                      value={mainFile.columnMapping[field] || ''}
+                      onValueChange={(v) => updateColumnMapping(setMainFile, field, v)}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Spalte wählen..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mainFile.headers.map((h) => (
+                          <SelectItem key={h} value={h}>{h}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {mainFile.error && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertCircle className="w-4 h-4" />
+              <AlertDescription>{mainFile.error}</AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Hauptdatei Upload */}
+        {/* Ansprechpersonen Upload */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <FileSpreadsheet className="w-5 h-5 text-primary" />
-              Hauptdatei
+              <Users className="w-5 h-5 text-chart-3" />
+              Ansprechpersonen (Optional)
             </CardTitle>
             <CardDescription>
-              CSV mit Organisationen/Einrichtungen (Name, Straße, PLZ, Stadt)
+              CSV mit Ansprechpersonen (Name, E-Mail)
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {!mainFile.file ? (
+            {!contactFile.file ? (
               <div
-                onDrop={(e) => handleFileDrop(e, setMainFile, 'main')}
+                onDrop={(e) => handleFileDrop(e, setContactFile, 'contact')}
                 onDragOver={(e) => e.preventDefault()}
                 className={cn(
                   'border-2 border-dashed rounded-lg p-8 text-center cursor-pointer',
-                  'hover:border-primary hover:bg-accent/50 transition-colors',
+                  'hover:border-chart-3 hover:bg-accent/50 transition-colors',
                   'border-muted-foreground/25'
                 )}
               >
                 <input
                   type="file"
                   accept=".csv"
-                  onChange={(e) => handleFileSelect(e, setMainFile, 'main')}
+                  onChange={(e) => handleFileSelect(e, setContactFile, 'contact')}
                   className="hidden"
-                  id="main-file"
+                  id="contact-file"
                 />
-                <label htmlFor="main-file" className="cursor-pointer">
+                <label htmlFor="contact-file" className="cursor-pointer">
                   <Upload className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
                   <p className="text-sm font-medium">CSV-Datei hierher ziehen</p>
                   <p className="text-xs text-muted-foreground mt-1">oder klicken zum Auswählen</p>
@@ -192,18 +319,18 @@ const StepUpload = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-3 bg-accent/50 rounded-lg">
                   <div className="flex items-center gap-2">
-                    <FileSpreadsheet className="w-5 h-5 text-primary" />
+                    <Users className="w-5 h-5 text-chart-3" />
                     <span className="text-sm font-medium truncate max-w-[180px]">
-                      {mainFile.file.name}
+                      {contactFile.file.name}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      ({mainFile.rows.length} Zeilen)
+                      ({contactFile.rows.length} Zeilen)
                     </span>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => removeFile(setMainFile)}
+                    onClick={() => removeFile(setContactFile)}
                   >
                     <X className="w-4 h-4" />
                   </Button>
@@ -212,22 +339,20 @@ const StepUpload = () => {
                 {/* Spalten-Zuordnung */}
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">Spaltenzuordnung</Label>
-                  {['name', 'street', 'zipCode', 'city'].map((field) => (
+                  {['name', 'email'].map((field) => (
                     <div key={field} className="flex items-center gap-3">
-                      <span className="text-sm w-20 capitalize">
-                        {field === 'zipCode' ? 'PLZ' : 
-                         field === 'street' ? 'Straße' :
-                         field === 'city' ? 'Stadt' : 'Name'}:
+                      <span className="text-sm w-20">
+                        {field === 'email' ? 'E-Mail' : 'Name'}:
                       </span>
                       <Select
-                        value={mainFile.columnMapping[field] || ''}
-                        onValueChange={(v) => updateColumnMapping(setMainFile, field, v)}
+                        value={contactFile.columnMapping[field] || ''}
+                        onValueChange={(v) => updateColumnMapping(setContactFile, field, v)}
                       >
                         <SelectTrigger className="flex-1">
                           <SelectValue placeholder="Spalte wählen..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {mainFile.headers.map((h) => (
+                          {contactFile.headers.map((h) => (
                             <SelectItem key={h} value={h}>{h}</SelectItem>
                           ))}
                         </SelectContent>
@@ -238,10 +363,10 @@ const StepUpload = () => {
               </div>
             )}
 
-            {mainFile.error && (
+            {contactFile.error && (
               <Alert variant="destructive" className="mt-4">
                 <AlertCircle className="w-4 h-4" />
-                <AlertDescription>{mainFile.error}</AlertDescription>
+                <AlertDescription>{contactFile.error}</AlertDescription>
               </Alert>
             )}
           </CardContent>

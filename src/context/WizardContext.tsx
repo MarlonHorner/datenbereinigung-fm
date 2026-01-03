@@ -8,6 +8,7 @@ type WizardAction =
   | { type: 'SET_ORGANIZATIONS'; organizations: Organization[] }
   | { type: 'UPDATE_ORGANIZATION'; id: string; updates: Partial<Organization> }
   | { type: 'SET_HEYFLOWS'; heyflows: Heyflow[] }
+  | { type: 'SET_CONTACT_PERSONS'; contactPersons: ContactPerson[] }
   | { type: 'ADD_CONTACT'; contact: ContactPerson }
   | { type: 'SET_DATA_LOADED'; loaded: boolean }
   | { type: 'RESET' };
@@ -31,6 +32,8 @@ const wizardReducer = (state: WizardState, action: WizardAction): WizardState =>
       };
     case 'SET_HEYFLOWS':
       return { ...state, heyflows: action.heyflows };
+    case 'SET_CONTACT_PERSONS':
+      return { ...state, contactPersons: action.contactPersons };
     case 'ADD_CONTACT':
       return { ...state, contactPersons: [...state.contactPersons, action.contact] };
     case 'SET_DATA_LOADED':

@@ -1,4 +1,4 @@
-import { Organization, Heyflow } from '@/types/organization';
+import { Organization, Heyflow, ContactPerson } from '@/types/organization';
 
 export interface ParsedCSVRow {
   [key: string]: string;
@@ -126,6 +126,39 @@ export const csvToHeyflows = (
     heyflowId: row[columnMapping.id] || '',
     url: row[columnMapping.url] || '',
     designation: row[columnMapping.designation] || '',
+    createdAt: new Date().toISOString(),
+  }));
+};
+
+// Ansprechpersonen-Spalten erkennen
+export const detectContactColumns = (headers: string[]): {
+  name?: string;
+  email?: string;
+} => {
+  const normalized = headers.map(h => h.toLowerCase());
+  
+  const findColumn = (keywords: string[]): string | undefined => {
+    const index = normalized.findIndex(h => 
+      keywords.some(kw => h.includes(kw))
+    );
+    return index >= 0 ? headers[index] : undefined;
+  };
+  
+  return {
+    name: findColumn(['name', 'vorname', 'nachname', 'ansprechpartner', 'kontakt', 'person']),
+    email: findColumn(['email', 'e-mail', 'mail', 'e_mail']),
+  };
+};
+
+// CSV zu Ansprechpersonen konvertieren
+export const csvToContactPersons = (
+  rows: ParsedCSVRow[],
+  columnMapping: { name: string; email: string }
+): ContactPerson[] => {
+  return rows.map(row => ({
+    id: `contact-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    name: row[columnMapping.name] || '',
+    email: row[columnMapping.email] || '',
     createdAt: new Date().toISOString(),
   }));
 };
