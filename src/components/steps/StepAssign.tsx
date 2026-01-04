@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Link2, AlertCircle, Check, ChevronDown } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Search, Link2, AlertCircle, Check, ChevronDown, Sparkles } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,42 +10,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useWizard } from '@/context/WizardContext';
 import { getAssignmentStats } from '@/lib/storage';
-import { generateAllMatches, MatchResult } from '@/lib/fuzzy-matching';
+import { findBestMatches, MatchResult } from '@/lib/fuzzy-matching';
 import { cn } from '@/lib/utils';
 
 const StepAssign = () => {
   const { state, dispatch } = useWizard();
   const { organizations } = state;
   
-  const [searchTerm, setSearchTerm] = useState('');
-  const [matchMap, setMatchMap] = useState<Map<string, MatchResult[]>>(new Map());
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [suggestionSearchTerms, setSuggestionSearchTerms] = useState<Record<string, string>>({});
 
-  const einrichtungen = useMemo(() => 
-    organizations.filter(o => o.type === 'einrichtung'), 
+  const einrichtungen = useMemo(() =>
+    organizations.filter(o => o.type === 'einrichtung'),
     [organizations]
   );
   
-  const traeger = useMemo(() => 
-    organizations.filter(o => o.type === 'traeger'), 
+  const traeger = useMemo(() =>
+    organizations.filter(o => o.type === 'traeger'),
     [organizations]
   );
-
-  // Fuzzy-Matching berechnen
-  useEffect(() => {
-    if (organizations.length > 0) {
-      const matches = generateAllMatches(organizations);
-      setMatchMap(matches);
-    }
-  }, [organizations]);
-
-  const filteredEinrichtungen = useMemo(() => {
-    return einrichtungen.filter(org =>
-      searchTerm === '' ||
-      org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      org.city.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [einrichtungen, searchTerm]);
 
   const stats = useMemo(() => getAssignmentStats(organizations), [organizations]);
   const progressPercent = stats.total > 0 ? Math.round((stats.assigned / stats.total) * 100) : 0;
@@ -92,23 +75,40 @@ const StepAssign = () => {
         </CardContent>
       </Card>
 
-      {/* Suche */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Nach Einrichtung suchen..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
-      </div>
-
       {/* Liste der Einrichtungen */}
       <div className="space-y-3">
-        {filteredEinrichtungen.map((einrichtung) => {
-          const matches = matchMap.get(einrichtung.id) || [];
+        {einrichtungen.map((einrichtung) => {
+          // Dynamische Vorschläge: Bereits zugeordnete Träger ausschließen
+          const availableTraeger = traeger.filter(t =>
+            einrichtung.parentOrganizationId !== t.id
+          );
+          const matches = findBestMatches(einrichtung, availableTraeger, 5);
+          
+          // Suchfilter für Vorschläge
+          const suggestionSearch = suggestionSearchTerms[einrichtung.id] || '';
+          const filteredMatches = matches.filter(match =>
+            suggestionSearch === '' ||
+            match.traegerName.toLowerCase().includes(suggestionSearch.toLowerCase())
+          );
+          
           const assignedTraeger = getTraegerName(einrichtung.parentOrganizationId);
           const isExpanded = expandedId === einrichtung.id;
+          
+          // Funktion zum Akzeptieren aller Vorschläge
+          const acceptAllSuggestions = () => {
+            if (filteredMatches.length > 0) {
+              // Nur den besten Vorschlag übernehmen (da eine Einrichtung nur einen Träger haben kann)
+              handleAssign(einrichtung.id, filteredMatches[0].traegerId);
+            }
+          };
+          
+          // Suchbegriff für diese Einrichtung setzen
+          const setSuggestionSearch = (value: string) => {
+            setSuggestionSearchTerms(prev => ({
+              ...prev,
+              [einrichtung.id]: value
+            }));
+          };
 
           return (
             <Card 
@@ -179,8 +179,37 @@ const StepAssign = () => {
 
                   <CollapsibleContent className="mt-4">
                     <div className="bg-muted/50 rounded-lg p-4">
-                      <h4 className="text-sm font-medium mb-3">Vorgeschlagene Trägerorganisationen</h4>
-                      {matches.length > 0 ? (
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-medium flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-primary" />
+                          Vorgeschlagene Trägerorganisationen
+                        </h4>
+                        {filteredMatches.length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={acceptAllSuggestions}
+                            className="gap-1"
+                          >
+                            <Check className="w-3 h-3" />
+                            Beste Übereinstimmung übernehmen
+                          </Button>
+                        )}
+                      </div>
+                      
+                      {matches.length > 0 && (
+                        <div className="relative mb-3">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Träger in Vorschlägen suchen..."
+                            value={suggestionSearch}
+                            onChange={(e) => setSuggestionSearch(e.target.value)}
+                            className="pl-10 bg-background"
+                          />
+                        </div>
+                      )}
+                      
+                      {filteredMatches.length > 0 ? (
                         <Table>
                           <TableHeader>
                             <TableRow>
@@ -193,7 +222,7 @@ const StepAssign = () => {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {matches.map((match) => (
+                            {filteredMatches.map((match) => (
                               <TableRow key={match.traegerId}>
                                 <TableCell className="font-medium">{match.traegerName}</TableCell>
                                 <TableCell className="text-center">{match.nameScore}%</TableCell>
@@ -215,8 +244,16 @@ const StepAssign = () => {
                             ))}
                           </TableBody>
                         </Table>
+                      ) : matches.length > 0 && suggestionSearch ? (
+                        <p className="text-sm text-muted-foreground">
+                          Keine Träger gefunden, die "{suggestionSearch}" entsprechen.
+                        </p>
                       ) : (
-                        <p className="text-sm text-muted-foreground">Keine Vorschläge verfügbar.</p>
+                        <p className="text-sm text-muted-foreground">
+                          {einrichtung.parentOrganizationId && einrichtung.parentOrganizationId !== 'no-traeger'
+                            ? 'Bereits zugeordnet - keine weiteren Vorschläge verfügbar.'
+                            : 'Keine Vorschläge verfügbar.'}
+                        </p>
                       )}
                     </div>
                   </CollapsibleContent>
@@ -227,7 +264,7 @@ const StepAssign = () => {
         })}
       </div>
 
-      {filteredEinrichtungen.length === 0 && (
+      {einrichtungen.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
           <p>Keine Einrichtungen gefunden.</p>
         </div>

@@ -67,6 +67,7 @@ const StepOverview = () => {
         einrichtungen: getEinrichtungenForTraeger(t.id).map(e => e.name),
       })),
       einrichtungen: einrichtungen.map(e => ({
+        id: e.id,
         name: e.name,
         adresse: `${e.street}, ${e.zipCode} ${e.city}`,
         traegerorganisation: getTraegerName(e.parentOrganizationId),
@@ -94,11 +95,12 @@ const StepOverview = () => {
 
   const exportToCSV = () => {
     // Einrichtungen CSV
-    const einrichtungenHeader = ['Name', 'Straße', 'PLZ', 'Stadt', 'Trägerorganisation', 'Ansprechpersonen', 'E-Mails', 'Heyflows'];
+    const einrichtungenHeader = ['ID', 'Name', 'Straße', 'PLZ', 'Stadt', 'Trägerorganisation', 'Ansprechpersonen', 'E-Mails', 'Heyflows'];
     const einrichtungenRows = einrichtungen.map(e => {
       const contacts = getContacts(e.contactPersonIds);
       const hfs = getHeyflows(e.heyflowIds);
       return [
+        e.id,
         `"${e.name}"`,
         `"${e.street}"`,
         e.zipCode,
@@ -240,6 +242,7 @@ const StepOverview = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>ID</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead className="hidden md:table-cell">Adresse</TableHead>
                     <TableHead>Trägerorganisation</TableHead>
@@ -255,6 +258,7 @@ const StepOverview = () => {
                     
                     return (
                       <TableRow key={e.id}>
+                        <TableCell className="text-muted-foreground">{e.id}</TableCell>
                         <TableCell className="font-medium">{e.name}</TableCell>
                         <TableCell className="hidden md:table-cell text-muted-foreground">
                           {e.street}, {e.zipCode} {e.city}

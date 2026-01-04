@@ -1,4 +1,4 @@
-import { Organization } from '@/types/organization';
+import { Organization, Heyflow } from '@/types/organization';
 
 // Levenshtein-Distanz für Fuzzy-Matching
 const levenshteinDistance = (str1: string, str2: string): number => {
@@ -95,4 +95,74 @@ export const generateAllMatches = (
   });
   
   return matchMap;
+};
+
+// Heyflow-Match-Ergebnis
+export interface HeyflowMatchResult {
+  organizationId: string;
+  organizationName: string;
+  confidence: number;
+  nameScore: number;
+}
+
+// Heyflow-Name mit Einrichtungs-Namen vergleichen
+export const findBestHeyflowMatches = (
+  heyflow: Heyflow,
+  einrichtungen: Organization[],
+  topN: number = 3
+): HeyflowMatchResult[] => {
+  const results: HeyflowMatchResult[] = einrichtungen.map(org => {
+    const nameScore = similarity(heyflow.designation, org.name);
+    
+    return {
+      organizationId: org.id,
+      organizationName: org.name,
+      confidence: nameScore,
+      nameScore,
+    };
+  });
+
+  return results
+    .filter(r => r.confidence > 30) // Nur Matches mit mindestens 30% Ähnlichkeit
+    .sort((a, b) => b.confidence - a.confidence)
+    .slice(0, topN);
+};
+
+// Alle Heyflows mit Vorschlägen für Einrichtungen
+export const generateHeyflowMatches = (
+  heyflows: Heyflow[],
+  organizations: Organization[]
+): Map<string, HeyflowMatchResult[]> => {
+  const einrichtungen = organizations.filter(o => o.type === 'einrichtung');
+  
+  const matchMap = new Map<string, HeyflowMatchResult[]>();
+  
+  heyflows.forEach(heyflow => {
+    const matches = findBestHeyflowMatches(heyflow, einrichtungen);
+    matchMap.set(heyflow.id, matches);
+  });
+  
+  return matchMap;
+};
+
+// Einrichtung-zu-Heyflows Mapping (umgekehrt)
+export const generateOrganizationHeyflowSuggestions = (
+  organization: Organization,
+  heyflows: Heyflow[],
+  topN: number = 3
+): Array<{ heyflowId: string; heyflowName: string; confidence: number }> => {
+  const results = heyflows.map(heyflow => {
+    const nameScore = similarity(organization.name, heyflow.designation);
+    
+    return {
+      heyflowId: heyflow.id,
+      heyflowName: heyflow.designation,
+      confidence: nameScore,
+    };
+  });
+
+  return results
+    .filter(r => r.confidence > 30)
+    .sort((a, b) => b.confidence - a.confidence)
+    .slice(0, topN);
 };
