@@ -1,4 +1,5 @@
 import { Organization, Heyflow, ContactPerson } from '@/types/organization';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface ParsedCSVRow {
   [key: string]: string;
@@ -69,18 +70,13 @@ export const detectColumns = (headers: string[]): {
   };
 };
 
-// Generiere eindeutige ID
-const generateId = (): string => {
-  return `org-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-};
-
 // CSV zu Organisationen konvertieren
 export const csvToOrganizations = (
   rows: ParsedCSVRow[],
   columnMapping: { name: string; street: string; zipCode: string; city: string }
 ): Organization[] => {
   return rows.map(row => ({
-    id: generateId(),
+    id: uuidv4(),
     name: row[columnMapping.name] || '',
     street: row[columnMapping.street] || '',
     zipCode: row[columnMapping.zipCode] || '',
@@ -122,11 +118,12 @@ export const csvToHeyflows = (
   columnMapping: { id: string; url: string; designation: string }
 ): Heyflow[] => {
   return rows.map(row => ({
-    id: `hf-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    id: uuidv4(),
     heyflowId: row[columnMapping.id] || '',
     url: row[columnMapping.url] || '',
     designation: row[columnMapping.designation] || '',
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   }));
 };
 
@@ -156,9 +153,10 @@ export const csvToContactPersons = (
   columnMapping: { name: string; email: string }
 ): ContactPerson[] => {
   return rows.map(row => ({
-    id: `contact-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    id: uuidv4(),
     name: row[columnMapping.name] || '',
     email: row[columnMapping.email] || '',
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   }));
 };

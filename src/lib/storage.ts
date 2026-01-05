@@ -1,17 +1,46 @@
 import { Organization, ContactPerson, Heyflow, WizardState } from '@/types/organization';
+import {
+  saveOrganizations as saveOrganizationsToDb,
+  saveContacts as saveContactsToDb,
+  saveHeyflows as saveHeyflowsToDb,
+  saveWizardSession,
+  loadWizardSession,
+  updateOrganization as updateOrganizationInDb,
+} from './supabase-storage';
 
 const STORAGE_KEY = 'health-org-wizard';
 
-export const saveWizardState = (state: WizardState): void => {
+/**
+ * Saves wizard state to both localStorage (cache) and Supabase (persistent)
+ */
+export const saveWizardState = async (state: WizardState): Promise<void> => {
   try {
+    // Save to localStorage for quick access
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    
+    // Save to Supabase for persistence
+    if (state.isDataLoaded) {
+      await saveWizardSession(state);
+    }
   } catch (error) {
     console.error('Fehler beim Speichern:', error);
   }
 };
 
-export const loadWizardState = (): WizardState | null => {
+/**
+ * Loads wizard state, preferring Supabase over localStorage
+ */
+export const loadWizardState = async (): Promise<WizardState | null> => {
   try {
+    // Try to load from Supabase first
+    const supabaseState = await loadWizardSession();
+    if (supabaseState) {
+      // Update localStorage cache
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(supabaseState));
+      return supabaseState;
+    }
+    
+    // Fallback to localStorage
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       return JSON.parse(stored);
@@ -24,6 +53,47 @@ export const loadWizardState = (): WizardState | null => {
 
 export const clearWizardState = (): void => {
   localStorage.removeItem(STORAGE_KEY);
+};
+
+/**
+ * Saves complete wizard data to Supabase database
+ */
+export const saveToDatabase = async (state: WizardState): Promise<WizardState> => {
+  try {
+    // Save organizations
+    const savedOrgs = await saveOrganizationsToDb(state.organizations);
+    
+    // Save contacts
+    const savedContacts = await saveContactsToDb(state.contactPersons);
+    
+    // Save heyflows
+    const savedHeyflows = await saveHeyflowsToDb(state.heyflows);
+    
+    // Save wizard session
+    await saveWizardSession({
+      ...state,
+      organizations: savedOrgs,
+      contactPersons: savedContacts,
+      heyflows: savedHeyflows,
+    });
+    
+    return {
+      ...state,
+      organizations: savedOrgs,
+      contactPersons: savedContacts,
+      heyflows: savedHeyflows,
+    };
+  } catch (error) {
+    console.error('Fehler beim Speichern in Datenbank:', error);
+    throw error;
+  }
+};
+
+/**
+ * Updates a single organization in the database
+ */
+export const updateOrganization = async (id: string, updates: Partial<Organization>): Promise<void> => {
+  await updateOrganizationInDb(id, updates);
 };
 
 export const getInitialState = (): WizardState => ({

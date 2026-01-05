@@ -6,17 +6,20 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useWizard } from '@/context/WizardContext';
-import { 
-  parseCSV, 
-  detectColumns, 
-  csvToOrganizations, 
-  detectHeyflowColumns, 
+import {
+  parseCSV,
+  detectColumns,
+  csvToOrganizations,
+  detectHeyflowColumns,
   csvToHeyflows,
   detectContactColumns,
   csvToContactPersons,
-  ParsedCSVRow 
+  ParsedCSVRow
 } from '@/lib/csv-parser';
 import { cn } from '@/lib/utils';
+import { saveToDatabase } from '@/lib/storage';
+import { createOrganizationLinks } from '@/lib/supabase-storage';
+import { toast } from 'sonner';
 
 interface FileUploadState {
   file: File | null;
@@ -27,7 +30,8 @@ interface FileUploadState {
 }
 
 const StepUpload = () => {
-  const { dispatch } = useWizard();
+  const { dispatch, state } = useWizard();
+  const [isImporting, setIsImporting] = useState(false);
   
   const [mainFile, setMainFile] = useState<FileUploadState>({
     file: null,
@@ -135,38 +139,81 @@ const StepUpload = () => {
     }));
   };
 
-  const handleImport = () => {
-    // Hauptdatei verarbeiten
-    if (mainFile.rows.length > 0) {
-      const mapping = mainFile.columnMapping as { name: string; street: string; zipCode: string; city: string };
-      
-      if (!mapping.name || !mapping.street || !mapping.zipCode || !mapping.city) {
-        setMainFile(prev => ({ ...prev, error: 'Bitte ordnen Sie alle Pflichtfelder zu.' }));
-        return;
+  const handleImport = async () => {
+    setIsImporting(true);
+    
+    try {
+      // Hauptdatei verarbeiten
+      let organizations = state.organizations;
+      if (mainFile.rows.length > 0) {
+        const mapping = mainFile.columnMapping as { name: string; street: string; zipCode: string; city: string };
+        
+        if (!mapping.name || !mapping.street || !mapping.zipCode || !mapping.city) {
+          setMainFile(prev => ({ ...prev, error: 'Bitte ordnen Sie alle Pflichtfelder zu.' }));
+          setIsImporting(false);
+          return;
+        }
+
+        organizations = csvToOrganizations(mainFile.rows, mapping);
       }
 
-      const organizations = csvToOrganizations(mainFile.rows, mapping);
-      dispatch({ type: 'SET_ORGANIZATIONS', organizations });
-    }
-
-    // Heyflow-Datei verarbeiten
-    if (heyflowFile.rows.length > 0) {
-      const mapping = heyflowFile.columnMapping as { id: string; url: string; designation: string };
-      
-      if (mapping.id && mapping.url && mapping.designation) {
-        const heyflows = csvToHeyflows(heyflowFile.rows, mapping);
-        dispatch({ type: 'SET_HEYFLOWS', heyflows });
+      // Heyflow-Datei verarbeiten
+      let heyflows = state.heyflows;
+      if (heyflowFile.rows.length > 0) {
+        const mapping = heyflowFile.columnMapping as { id: string; url: string; designation: string };
+        
+        if (mapping.id && mapping.url && mapping.designation) {
+          heyflows = csvToHeyflows(heyflowFile.rows, mapping);
+        }
       }
-    }
 
-    // Ansprechpersonen-Datei verarbeiten
-    if (contactFile.rows.length > 0) {
-      const mapping = contactFile.columnMapping as { name: string; email: string };
-      
-      if (mapping.name && mapping.email) {
-        const contacts = csvToContactPersons(contactFile.rows, mapping);
-        dispatch({ type: 'SET_CONTACT_PERSONS', contactPersons: contacts });
+      // Ansprechpersonen-Datei verarbeiten
+      let contacts = state.contactPersons;
+      if (contactFile.rows.length > 0) {
+        const mapping = contactFile.columnMapping as { name: string; email: string };
+        
+        if (mapping.name && mapping.email) {
+          contacts = csvToContactPersons(contactFile.rows, mapping);
+        }
       }
+
+      // In Supabase speichern
+      toast.loading('Speichere Daten in Datenbank...', { id: 'import' });
+      
+      const newState = {
+        ...state,
+        organizations,
+        contactPersons: contacts,
+        heyflows,
+        isDataLoaded: true,
+      };
+      
+      const savedState = await saveToDatabase(newState);
+      
+      // Verknüpfungen erstellen
+      await createOrganizationLinks(
+        savedState.organizations,
+        savedState.contactPersons,
+        savedState.heyflows
+      );
+      
+      // State aktualisieren
+      dispatch({ type: 'SET_ORGANIZATIONS', organizations: savedState.organizations });
+      dispatch({ type: 'SET_CONTACT_PERSONS', contactPersons: savedState.contactPersons });
+      dispatch({ type: 'SET_HEYFLOWS', heyflows: savedState.heyflows });
+      
+      toast.success(
+        `Erfolgreich gespeichert! ${savedState.organizations.length} Organisationen, ${savedState.contactPersons.length} Kontakte, ${savedState.heyflows.length} Heyflows`,
+        { id: 'import', duration: 5000 }
+      );
+    } catch (error) {
+      console.error('Import error:', error);
+      toast.error(
+        `Fehler beim Speichern: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`,
+        { id: 'import', duration: 7000 }
+      );
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -468,9 +515,14 @@ const StepUpload = () => {
       {/* Import Button */}
       {isMainFileReady && (
         <div className="flex justify-end">
-          <Button onClick={handleImport} size="lg" className="gap-2">
+          <Button
+            onClick={handleImport}
+            size="lg"
+            className="gap-2"
+            disabled={isImporting}
+          >
             <FileSpreadsheet className="w-5 h-5" />
-            Daten importieren ({mainFile.rows.length} Einträge)
+            {isImporting ? 'Speichere...' : `Daten importieren (${mainFile.rows.length} Einträge)`}
           </Button>
         </div>
       )}

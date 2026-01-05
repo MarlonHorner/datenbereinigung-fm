@@ -19,7 +19,9 @@ export interface ContactPerson {
   id: string;
   name: string;
   email: string;
+  department?: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface Heyflow {
@@ -28,6 +30,7 @@ export interface Heyflow {
   url: string;
   designation: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface FuzzyMatch {

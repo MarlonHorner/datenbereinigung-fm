@@ -10,8 +10,8 @@ import StepContacts from '@/components/steps/StepContacts';
 import StepHeyflows from '@/components/steps/StepHeyflows';
 import StepOverview from '@/components/steps/StepOverview';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Save, CheckCircle2 } from 'lucide-react';
-import { clearWizardState, saveWizardState } from '@/lib/storage';
+import { RefreshCw, Save, CheckCircle2, Download } from 'lucide-react';
+import { clearWizardState, saveWizardState, loadWizardState } from '@/lib/storage';
 import { WIZARD_STEPS } from '@/types/organization';
 import { toast } from 'sonner';
 import fmLogo from '@/assets/fm-logo.svg';
@@ -21,6 +21,7 @@ const WizardContent = () => {
   const { currentStep } = state;
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Auto-save bei Änderungen
   useEffect(() => {
@@ -39,12 +40,45 @@ const WizardContent = () => {
     }
   };
 
-  const handleManualSave = () => {
-    saveWizardState(state);
-    setLastSaved(new Date());
-    setShowSaveConfirm(true);
-    toast.success('Fortschritt gespeichert');
-    setTimeout(() => setShowSaveConfirm(false), 2000);
+  const handleManualSave = async () => {
+    try {
+      await saveWizardState(state);
+      setLastSaved(new Date());
+      setShowSaveConfirm(true);
+      toast.success('Fortschritt gespeichert');
+      setTimeout(() => setShowSaveConfirm(false), 2000);
+    } catch (error) {
+      toast.error('Fehler beim Speichern');
+      console.error('Save error:', error);
+    }
+  };
+
+  const handleLoadFromDatabase = async () => {
+    setIsLoading(true);
+    try {
+      toast.loading('Lade Daten von Supabase...', { id: 'load' });
+      
+      const loadedState = await loadWizardState();
+      
+      if (loadedState && loadedState.organizations.length > 0) {
+        dispatch({ type: 'LOAD_STATE', state: loadedState });
+        toast.success(
+          `Geladen: ${loadedState.organizations.length} Organisationen, ${loadedState.contactPersons.length} Kontakte, ${loadedState.heyflows.length} Heyflows`,
+          { id: 'load', duration: 5000 }
+        );
+        setLastSaved(new Date());
+      } else {
+        toast.info('Keine Daten in der Datenbank gefunden', { id: 'load' });
+      }
+    } catch (error) {
+      console.error('Load error:', error);
+      toast.error(
+        `Fehler beim Laden: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`,
+        { id: 'load', duration: 7000 }
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formatLastSaved = (date: Date) => {
@@ -89,6 +123,20 @@ const WizardContent = () => {
             </div>
             
             <div className="flex items-center gap-2">
+              {/* Laden-Button (immer sichtbar) */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLoadFromDatabase}
+                disabled={isLoading}
+                className="gap-2"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">
+                  {isLoading ? 'Lädt...' : 'Laden'}
+                </span>
+              </Button>
+
               {state.isDataLoaded && (
                 <>
                   {/* Speicher-Status */}
@@ -102,10 +150,10 @@ const WizardContent = () => {
                   </div>
 
                   {/* Manueller Speichern-Button */}
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleManualSave} 
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleManualSave}
                     className="gap-2"
                   >
                     {showSaveConfirm ? (

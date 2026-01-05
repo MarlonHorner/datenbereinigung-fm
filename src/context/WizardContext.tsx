@@ -61,16 +61,21 @@ export const WizardProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   // Zustand beim Start laden
   useEffect(() => {
-    const savedState = loadWizardState();
-    if (savedState) {
-      dispatch({ type: 'LOAD_STATE', state: savedState });
-    }
+    const loadState = async () => {
+      const savedState = await loadWizardState();
+      if (savedState) {
+        dispatch({ type: 'LOAD_STATE', state: savedState });
+      }
+    };
+    loadState();
   }, []);
 
   // Zustand bei Änderungen speichern
   useEffect(() => {
     if (state.isDataLoaded) {
-      saveWizardState(state);
+      saveWizardState(state).catch(error => {
+        console.error('Fehler beim Speichern des Wizard-Status:', error);
+      });
     }
   }, [state]);
 
