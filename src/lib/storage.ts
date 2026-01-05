@@ -60,14 +60,23 @@ export const clearWizardState = (): void => {
  */
 export const saveToDatabase = async (state: WizardState): Promise<WizardState> => {
   try {
+    console.log('[saveToDatabase] Starting save...');
+    console.log('[saveToDatabase] Organizations:', state.organizations.length);
+    console.log('[saveToDatabase] Contacts:', state.contactPersons.length);
+    console.log('[saveToDatabase] Heyflows:', state.heyflows.length);
+    
     // Save organizations
     const savedOrgs = await saveOrganizationsToDb(state.organizations);
+    console.log('[saveToDatabase] Saved organizations:', savedOrgs.length);
     
     // Save contacts
     const savedContacts = await saveContactsToDb(state.contactPersons);
+    console.log('[saveToDatabase] Saved contacts:', savedContacts.length);
     
     // Save heyflows
+    console.log('[saveToDatabase] Saving heyflows...');
     const savedHeyflows = await saveHeyflowsToDb(state.heyflows);
+    console.log('[saveToDatabase] Saved heyflows:', savedHeyflows.length);
     
     // Save wizard session
     await saveWizardSession({

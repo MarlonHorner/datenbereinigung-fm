@@ -129,9 +129,17 @@ export async function loadContacts(): Promise<ContactPerson[]> {
  * Saves heyflows to the database
  */
 export async function saveHeyflows(heyflows: Heyflow[]): Promise<Heyflow[]> {
-  if (heyflows.length === 0) return [];
+  console.log('[saveHeyflows] Called with', heyflows.length, 'heyflows');
+  
+  if (heyflows.length === 0) {
+    console.log('[saveHeyflows] No heyflows to save, returning empty array');
+    return [];
+  }
 
+  console.log('[saveHeyflows] Sample heyflow:', heyflows[0]);
+  
   const dbHeyflows = heyflows.map(heyflowToDb);
+  console.log('[saveHeyflows] Converted to DB format, sample:', dbHeyflows[0]);
 
   const { data, error } = await supabase
     .from('heyflows')
@@ -139,11 +147,12 @@ export async function saveHeyflows(heyflows: Heyflow[]): Promise<Heyflow[]> {
     .select();
 
   if (error) {
-    console.error('Error saving heyflows:', error);
+    console.error('[saveHeyflows] Error saving heyflows:', error);
     throw new Error(`Fehler beim Speichern der Heyflows: ${error.message}`);
   }
 
-  return data.map(dbToHeyflow);
+  console.log('[saveHeyflows] Successfully saved', data?.length || 0, 'heyflows');
+  return data ? data.map(dbToHeyflow) : [];
 }
 
 /**
