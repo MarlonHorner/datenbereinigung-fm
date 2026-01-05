@@ -401,3 +401,59 @@ export async function updateOrganization(id: string, updates: Partial<Organizati
     }
   }
 }
+
+/**
+ * Deletes an organization from the database
+ */
+export async function deleteOrganization(id: string): Promise<void> {
+  // Delete relationships first (cascading delete should handle this, but being explicit)
+  await supabase
+    .from('organization_contacts')
+    .delete()
+    .eq('organization_id', id);
+
+  await supabase
+    .from('organization_heyflows')
+    .delete()
+    .eq('organization_id', id);
+
+  // Delete the organization
+  const { error } = await supabase
+    .from('organizations')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting organization:', error);
+    throw new Error(`Fehler beim Löschen der Organisation: ${error.message}`);
+  }
+}
+
+/**
+ * Deletes multiple organizations from the database
+ */
+export async function deleteOrganizations(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+
+  // Delete relationships
+  await supabase
+    .from('organization_contacts')
+    .delete()
+    .in('organization_id', ids);
+
+  await supabase
+    .from('organization_heyflows')
+    .delete()
+    .in('organization_id', ids);
+
+  // Delete organizations
+  const { error } = await supabase
+    .from('organizations')
+    .delete()
+    .in('id', ids);
+
+  if (error) {
+    console.error('Error deleting organizations:', error);
+    throw new Error(`Fehler beim Löschen der Organisationen: ${error.message}`);
+  }
+}

@@ -7,6 +7,7 @@ type WizardAction =
   | { type: 'LOAD_STATE'; state: WizardState }
   | { type: 'SET_ORGANIZATIONS'; organizations: Organization[] }
   | { type: 'UPDATE_ORGANIZATION'; id: string; updates: Partial<Organization> }
+  | { type: 'DELETE_ORGANIZATION'; id: string }
   | { type: 'SET_HEYFLOWS'; heyflows: Heyflow[] }
   | { type: 'SET_CONTACT_PERSONS'; contactPersons: ContactPerson[] }
   | { type: 'ADD_CONTACT'; contact: ContactPerson }
@@ -29,6 +30,11 @@ const wizardReducer = (state: WizardState, action: WizardAction): WizardState =>
             ? { ...org, ...action.updates, updatedAt: new Date().toISOString() }
             : org
         ),
+      };
+    case 'DELETE_ORGANIZATION':
+      return {
+        ...state,
+        organizations: state.organizations.filter(org => org.id !== action.id),
       };
     case 'SET_HEYFLOWS':
       return { ...state, heyflows: action.heyflows };

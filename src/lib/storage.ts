@@ -6,6 +6,8 @@ import {
   saveWizardSession,
   loadWizardSession,
   updateOrganization as updateOrganizationInDb,
+  deleteOrganization as deleteOrganizationFromDb,
+  deleteOrganizations as deleteOrganizationsFromDb,
 } from './supabase-storage';
 
 const STORAGE_KEY = 'health-org-wizard';
@@ -20,6 +22,10 @@ export const saveWizardState = async (state: WizardState): Promise<void> => {
     
     // Save to Supabase for persistence
     if (state.isDataLoaded) {
+      // Save organizations (upsert will update existing or create new)
+      await saveOrganizationsToDb(state.organizations);
+      
+      // Save session metadata
       await saveWizardSession(state);
     }
   } catch (error) {
@@ -103,6 +109,20 @@ export const saveToDatabase = async (state: WizardState): Promise<WizardState> =
  */
 export const updateOrganization = async (id: string, updates: Partial<Organization>): Promise<void> => {
   await updateOrganizationInDb(id, updates);
+};
+
+/**
+ * Deletes a single organization from the database
+ */
+export const deleteOrganization = async (id: string): Promise<void> => {
+  await deleteOrganizationFromDb(id);
+};
+
+/**
+ * Deletes multiple organizations from the database
+ */
+export const deleteOrganizations = async (ids: string[]): Promise<void> => {
+  await deleteOrganizationsFromDb(ids);
 };
 
 export const getInitialState = (): WizardState => ({

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Building2, Home, Search, Filter, CheckCircle2 } from 'lucide-react';
+import { Building2, Home, Search, Filter, CheckCircle2, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useWizard } from '@/context/WizardContext';
-import { getClassificationStats } from '@/lib/storage';
+import { getClassificationStats, deleteOrganization, deleteOrganizations } from '@/lib/storage';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 type FilterType = 'all' | 'classified' | 'unclassified';
 
@@ -50,6 +51,40 @@ const StepClassify = () => {
       dispatch({ type: 'UPDATE_ORGANIZATION', id, updates: { type } });
     });
     setSelectedIds(new Set());
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (confirm(`Möchten Sie "${name}" wirklich ausschließen/löschen?`)) {
+      try {
+        // Delete from database
+        await deleteOrganization(id);
+        // Delete from state
+        dispatch({ type: 'DELETE_ORGANIZATION', id });
+        toast.success('Eintrag wurde gelöscht');
+      } catch (error) {
+        console.error('Fehler beim Löschen:', error);
+        toast.error('Fehler beim Löschen des Eintrags');
+      }
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const count = selectedIds.size;
+    if (confirm(`Möchten Sie ${count} Einträge wirklich ausschließen/löschen?`)) {
+      try {
+        // Delete from database
+        await deleteOrganizations(Array.from(selectedIds));
+        // Delete from state
+        selectedIds.forEach(id => {
+          dispatch({ type: 'DELETE_ORGANIZATION', id });
+        });
+        setSelectedIds(new Set());
+        toast.success(`${count} Einträge wurden gelöscht`);
+      } catch (error) {
+        console.error('Fehler beim Löschen:', error);
+        toast.error('Fehler beim Löschen der Einträge');
+      }
+    }
   };
 
   const toggleSelection = (id: string) => {
@@ -175,6 +210,15 @@ const StepClassify = () => {
                   <Home className="w-4 h-4" />
                   Als Einrichtung
                 </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleBulkDelete}
+                  className="gap-1"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Löschen
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -214,7 +258,7 @@ const StepClassify = () => {
                       onCheckedChange={() => toggleSelection(org.id)}
                     />
                   </TableCell>
-                  <TableCell className="font-medium max-w-[200px] truncate">
+                  <TableCell className="font-medium">
                     {org.name}
                   </TableCell>
                   <TableCell className="hidden md:table-cell text-muted-foreground">
@@ -257,6 +301,14 @@ const StepClassify = () => {
                       >
                         <Home className="w-3 h-3" />
                         <span className="hidden lg:inline">Einrichtung</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(org.id, org.name)}
+                        className="gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="w-3 h-3" />
                       </Button>
                     </div>
                   </TableCell>
