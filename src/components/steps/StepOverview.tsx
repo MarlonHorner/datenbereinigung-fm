@@ -15,12 +15,12 @@ const StepOverview = () => {
   
   const [searchTerm, setSearchTerm] = useState('');
 
-  const traeger = useMemo(() => 
+  const traeger = useMemo(() =>
     organizations.filter(o => o.type === 'traeger'),
     [organizations]
   );
   
-  const einrichtungen = useMemo(() => 
+  const einrichtungen = useMemo(() =>
     organizations.filter(o => o.type === 'einrichtung'),
     [organizations]
   );
@@ -58,29 +58,71 @@ const StepOverview = () => {
     return einrichtungen.filter(e => e.parentOrganizationId === traegerId);
   };
 
+  // Hilfsfunktion zum Aufteilen von E-Mails
+  const splitEmails = (emailString?: string): string[] => {
+    if (!emailString) return [];
+    return emailString
+      .split(/[,;]/)
+      .map(email => email.trim())
+      .filter(email => email.length > 0);
+  };
+
   // Export-Funktionen
   const exportToJSON = () => {
     const data = {
-      traegerorganisationen: traeger.map(t => ({
-        name: t.name,
-        adresse: `${t.street}, ${t.zipCode} ${t.city}`,
-        einrichtungen: getEinrichtungenForTraeger(t.id).map(e => e.name),
-      })),
-      einrichtungen: einrichtungen.map(e => ({
-        id: e.id,
-        name: e.name,
-        adresse: `${e.street}, ${e.zipCode} ${e.city}`,
-        traegerorganisation: getTraegerName(e.parentOrganizationId),
-        ansprechpersonen: getContacts(e.contactPersonIds).map(c => ({
-          name: c.name,
-          email: c.email,
-        })),
-        heyflows: getHeyflows(e.heyflowIds).map(h => ({
-          id: h.heyflowId,
-          bezeichnung: h.designation,
-          url: h.url,
-        })),
-      })),
+      traegerorganisationen: traeger.map(t => {
+        const tEinrichtungen = getEinrichtungenForTraeger(t.id);
+        return {
+          id: t.id,
+          name: t.name,
+          adresse: `${t.street}, ${t.zipCode} ${t.city}`,
+          // Direkte Kontaktfelder für Träger
+          ansprechperson_allgemein: t.generalContactPerson || null,
+          telefon: t.phone || null,
+          email: t.email || null,
+          rechnung_emails: splitEmails(t.invoiceEmail),
+          einrichtungen: tEinrichtungen.map(e => ({
+            id: e.id,
+            name: e.name,
+          })),
+          einrichtungen_ids: tEinrichtungen.map(e => e.id),
+        };
+      }),
+      einrichtungen: einrichtungen.map(e => {
+        const contacts = getContacts(e.contactPersonIds);
+        const hfs = getHeyflows(e.heyflowIds);
+        return {
+          id: e.id,
+          name: e.name,
+          adresse: `${e.street}, ${e.zipCode} ${e.city}`,
+          traegerorganisation: {
+            id: e.parentOrganizationId || null,
+            name: getTraegerName(e.parentOrganizationId),
+          },
+          // Direkte Kontaktfelder
+          ansprechperson_allgemein: e.generalContactPerson || null,
+          telefon: e.phone || null,
+          email: e.email || null,
+          rechnung_emails: splitEmails(e.invoiceEmail),
+          bewerbung_emails: splitEmails(e.applicationEmail),
+          // Ansprechpersonen-Liste
+          ansprechpersonen: contacts.map(c => ({
+            id: c.id,
+            vorname: c.firstname,
+            nachname: c.lastname,
+            email: c.email,
+            note: c.note,
+          })),
+          ansprechpersonen_ids: e.contactPersonIds,
+          heyflows: hfs.map(h => ({
+            id: h.id,
+            heyflow_id: h.heyflowId,
+            bezeichnung: h.designation,
+            url: h.url,
+          })),
+          heyflows_ids: e.heyflowIds,
+        };
+      }),
       exportDatum: new Date().toISOString(),
     };
 
@@ -95,7 +137,7 @@ const StepOverview = () => {
 
   const exportToCSV = () => {
     // Einrichtungen CSV
-    const einrichtungenHeader = ['ID', 'Name', 'Straße', 'PLZ', 'Stadt', 'Trägerorganisation', 'Ansprechpersonen', 'E-Mails', 'Heyflows'];
+    const einrichtungenHeader = ['ID', 'Name', 'Straße', 'PLZ', 'Stadt', 'Trägerorganisation', 'Ansprechperson Allgemein', 'Telefon', 'E-Mail', 'Rechnung E-Mails', 'Bewerbung E-Mails', 'Ansprechpersonen Vorname', 'Ansprechpersonen Nachname', 'Ansprechpersonen E-Mails', 'Heyflows'];
     const einrichtungenRows = einrichtungen.map(e => {
       const contacts = getContacts(e.contactPersonIds);
       const hfs = getHeyflows(e.heyflowIds);
@@ -106,7 +148,13 @@ const StepOverview = () => {
         e.zipCode,
         `"${e.city}"`,
         `"${getTraegerName(e.parentOrganizationId)}"`,
-        `"${contacts.map(c => c.name).join(', ')}"`,
+        `"${e.generalContactPerson || ''}"`,
+        `"${e.phone || ''}"`,
+        `"${e.email || ''}"`,
+        `"${e.invoiceEmail || ''}"`,
+        `"${e.applicationEmail || ''}"`,
+        `"${contacts.map(c => c.firstname).join(', ')}"`,
+        `"${contacts.map(c => c.lastname).join(', ')}"`,
         `"${contacts.map(c => c.email).join(', ')}"`,
         `"${hfs.map(h => h.designation).join(', ')}"`,
       ].join(';');
@@ -115,12 +163,16 @@ const StepOverview = () => {
     const einrichtungenCSV = [einrichtungenHeader.join(';'), ...einrichtungenRows].join('\n');
     
     // Träger CSV
-    const traegerHeader = ['Name', 'Straße', 'PLZ', 'Stadt', 'Anzahl Einrichtungen'];
+    const traegerHeader = ['Name', 'Straße', 'PLZ', 'Stadt', 'Ansprechperson Allgemein', 'Telefon', 'E-Mail', 'Rechnung E-Mails', 'Anzahl Einrichtungen'];
     const traegerRows = traeger.map(t => [
       `"${t.name}"`,
       `"${t.street}"`,
       t.zipCode,
       `"${t.city}"`,
+      `"${t.generalContactPerson || ''}"`,
+      `"${t.phone || ''}"`,
+      `"${t.email || ''}"`,
+      `"${t.invoiceEmail || ''}"`,
       getEinrichtungenForTraeger(t.id).length,
     ].join(';'));
     
@@ -270,7 +322,7 @@ const StepOverview = () => {
                           <div className="flex flex-wrap gap-1">
                             {contacts.map(c => (
                               <Badge key={c.id} variant="secondary" className="text-xs">
-                                {c.name}
+                                {c.firstname} {c.lastname}
                               </Badge>
                             ))}
                           </div>

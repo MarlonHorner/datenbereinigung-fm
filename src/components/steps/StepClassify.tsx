@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Building2, Home, Search, Filter, CheckCircle2, Trash2 } from 'lucide-react';
+import { Building2, Home, Search, Filter, CheckCircle2, Trash2, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,11 +42,14 @@ const StepClassify = () => {
     });
   }, [organizations, searchTerm, filter]);
 
-  const handleClassify = (id: string, type: 'traeger' | 'einrichtung') => {
-    dispatch({ type: 'UPDATE_ORGANIZATION', id, updates: { type } });
+  const handleClassify = (id: string, type: 'traeger' | 'einrichtung' | 'inaktiv') => {
+    const org = organizations.find(o => o.id === id);
+    // Toggle: Wenn bereits dieser Typ gesetzt ist, auf null setzen
+    const newType = org?.type === type ? null : type;
+    dispatch({ type: 'UPDATE_ORGANIZATION', id, updates: { type: newType } });
   };
 
-  const handleBulkClassify = (type: 'traeger' | 'einrichtung') => {
+  const handleBulkClassify = (type: 'traeger' | 'einrichtung' | 'inaktiv') => {
     selectedIds.forEach(id => {
       dispatch({ type: 'UPDATE_ORGANIZATION', id, updates: { type } });
     });
@@ -119,7 +122,7 @@ const StepClassify = () => {
       </div>
 
       {/* Statistik-Karten */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="pt-4">
             <div className="text-2xl font-bold text-foreground">{stats.total}</div>
@@ -136,6 +139,12 @@ const StepClassify = () => {
           <CardContent className="pt-4">
             <div className="text-2xl font-bold text-secondary">{stats.einrichtungen}</div>
             <p className="text-sm text-muted-foreground">Einrichtungen</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="text-2xl font-bold text-muted-foreground">{organizations.filter(o => o.type === 'inaktiv').length}</div>
+            <p className="text-sm text-muted-foreground">Inaktiv</p>
           </CardContent>
         </Card>
         <Card>
@@ -211,6 +220,15 @@ const StepClassify = () => {
                   Als Einrichtung
                 </Button>
                 <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleBulkClassify('inaktiv')}
+                  className="gap-1"
+                >
+                  <XCircle className="w-4 h-4" />
+                  Als Inaktiv
+                </Button>
+                <Button
                   variant="destructive"
                   size="sm"
                   onClick={handleBulkDelete}
@@ -268,13 +286,29 @@ const StepClassify = () => {
                     <span className="text-muted-foreground">{org.zipCode}</span> {org.city}
                   </TableCell>
                   <TableCell>
-                    {org.type ? (
-                      <Badge 
-                        variant={org.type === 'traeger' ? 'default' : 'secondary'}
+                    {org.type === 'traeger' ? (
+                      <Badge
+                        variant="default"
                         className="gap-1"
                       >
                         <CheckCircle2 className="w-3 h-3" />
-                        {org.type === 'traeger' ? 'Träger' : 'Einrichtung'}
+                        Träger
+                      </Badge>
+                    ) : org.type === 'einrichtung' ? (
+                      <Badge
+                        variant="secondary"
+                        className="gap-1"
+                      >
+                        <CheckCircle2 className="w-3 h-3" />
+                        Einrichtung
+                      </Badge>
+                    ) : org.type === 'inaktiv' ? (
+                      <Badge
+                        variant="destructive"
+                        className="gap-1"
+                      >
+                        <XCircle className="w-3 h-3" />
+                        Inaktiv
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="text-muted-foreground">
@@ -288,19 +322,30 @@ const StepClassify = () => {
                         variant={org.type === 'traeger' ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => handleClassify(org.id, 'traeger')}
-                        className="gap-1"
+                        className="gap-1 min-w-[90px]"
+                        disabled={org.type === 'inaktiv'}
                       >
                         <Building2 className="w-3 h-3" />
-                        <span className="hidden lg:inline">Träger</span>
+                        <span className="hidden xl:inline">Träger</span>
                       </Button>
                       <Button
                         variant={org.type === 'einrichtung' ? 'secondary' : 'outline'}
                         size="sm"
                         onClick={() => handleClassify(org.id, 'einrichtung')}
-                        className="gap-1"
+                        className="gap-1 min-w-[90px]"
+                        disabled={org.type === 'inaktiv'}
                       >
                         <Home className="w-3 h-3" />
-                        <span className="hidden lg:inline">Einrichtung</span>
+                        <span className="hidden xl:inline">Einrichtung</span>
+                      </Button>
+                      <Button
+                        variant={org.type === 'inaktiv' ? 'destructive' : 'outline'}
+                        size="sm"
+                        onClick={() => handleClassify(org.id, 'inaktiv')}
+                        className="gap-1 min-w-[90px]"
+                      >
+                        <XCircle className="w-3 h-3" />
+                        <span className="hidden xl:inline">Inaktiv</span>
                       </Button>
                       <Button
                         variant="ghost"

@@ -148,8 +148,8 @@ const StepAssign = () => {
 
                     <div className="flex items-center gap-2">
                       <Select
-                        value={einrichtung.parentOrganizationId || ''}
-                        onValueChange={(v) => handleAssign(einrichtung.id, v)}
+                        value={einrichtung.parentOrganizationId || '_unassigned_'}
+                        onValueChange={(v) => handleAssign(einrichtung.id, v === '_unassigned_' ? '' : v)}
                       >
                         <SelectTrigger className="w-[200px]">
                           <SelectValue placeholder="Träger wählen..." />

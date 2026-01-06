@@ -4,8 +4,10 @@ export interface ContactMatchResult {
   contactId: string;
   contactName: string;
   contactEmail: string;
+  contactNote?: string;
   confidence: number;
   domainMatch: number;
+  noteMatch: number;
 }
 
 /**
@@ -73,6 +75,8 @@ const calculateSimilarity = (str1: string, str2: string): number => {
 
 /**
  * Generiert Matching-Vorschläge für Ansprechpersonen zu einer Einrichtung
+ * Priorität 1: Notiz-Match (Name der Einrichtung/Firma)
+ * Priorität 2: E-Mail Domain Match
  */
 export const generateContactMatches = (
   organization: Organization,
@@ -83,21 +87,41 @@ export const generateContactMatches = (
   const orgNameNormalized = normalize(organization.name);
   
   const matches: ContactMatchResult[] = availableContacts.map(contact => {
+    // Prio 1: Match über Notiz-Feld (Einrichtung/Firma Name)
+    let noteMatch = 0;
+    if (contact.note && contact.note.trim().length > 0) {
+      noteMatch = calculateSimilarity(contact.note, organization.name);
+    }
+    
+    // Prio 2: Match über E-Mail Domain
     const domain = extractDomainName(contact.email);
     const domainMatch = calculateSimilarity(domain, orgNameNormalized);
     
     // Zusätzlich: Prüfe ob Stadt im Domain enthalten
     const cityMatch = calculateSimilarity(domain, organization.city);
     
-    // Gewichtete Konfidenz: Domain-Match ist wichtiger
-    const confidence = Math.round(domainMatch * 0.8 + cityMatch * 0.2);
+    // Gewichtete Konfidenz: Notiz-Match hat höchste Priorität
+    // Wenn Notiz vorhanden und gut matched (>60%), dominiert dieser
+    let confidence: number;
+    if (noteMatch > 60) {
+      // Sehr guter Notiz-Match: 90% Notiz, 10% Domain
+      confidence = Math.round(noteMatch * 0.9 + domainMatch * 0.1);
+    } else if (noteMatch > 0) {
+      // Mittlerer Notiz-Match: 70% Notiz, 30% Domain
+      confidence = Math.round(noteMatch * 0.7 + domainMatch * 0.3);
+    } else {
+      // Kein Notiz-Match: Nur Domain und Stadt verwenden
+      confidence = Math.round(domainMatch * 0.8 + cityMatch * 0.2);
+    }
     
     return {
       contactId: contact.id,
-      contactName: contact.name,
+      contactName: `${contact.firstname} ${contact.lastname}`.trim(),
       contactEmail: contact.email,
+      contactNote: contact.note,
       confidence,
       domainMatch,
+      noteMatch,
     };
   });
   

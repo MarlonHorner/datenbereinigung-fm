@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Check, Edit2, X, Save } from 'lucide-react';
+import { Search, Check, Edit2, X, Save, Stethoscope, Bed } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { useWizard } from '@/context/WizardContext';
 import { getValidationStats } from '@/lib/storage';
 import { cn } from '@/lib/utils';
@@ -23,6 +24,7 @@ const StepValidate: React.FC<StepValidateProps> = ({ type }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Organization>>({});
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const filteredOrgs = useMemo(() => {
     return organizations
@@ -49,6 +51,14 @@ const StepValidate: React.FC<StepValidateProps> = ({ type }) => {
       street: org.street,
       zipCode: org.zipCode,
       city: org.city,
+      isAmbulant: org.isAmbulant,
+      isStationaer: org.isStationaer,
+      // Kontaktfelder
+      generalContactPerson: org.generalContactPerson,
+      phone: org.phone,
+      email: org.email,
+      invoiceEmail: org.invoiceEmail,
+      applicationEmail: org.applicationEmail,
     });
   };
 
@@ -66,6 +76,60 @@ const StepValidate: React.FC<StepValidateProps> = ({ type }) => {
 
   const toggleValidated = (id: string, currentState: boolean) => {
     dispatch({ type: 'UPDATE_ORGANIZATION', id, updates: { isValidated: !currentState } });
+  };
+
+  const toggleSelection = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredOrgs.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredOrgs.map(o => o.id)));
+    }
+  };
+
+  const handleBulkToggleAmbulant = () => {
+    selectedIds.forEach(id => {
+      const org = organizations.find(o => o.id === id);
+      if (org) {
+        dispatch({ type: 'UPDATE_ORGANIZATION', id, updates: { isAmbulant: !org.isAmbulant } });
+      }
+    });
+  };
+
+  const handleBulkToggleStationaer = () => {
+    selectedIds.forEach(id => {
+      const org = organizations.find(o => o.id === id);
+      if (org) {
+        dispatch({ type: 'UPDATE_ORGANIZATION', id, updates: { isStationaer: !org.isStationaer } });
+      }
+    });
+  };
+
+  const handleBulkReset = () => {
+    selectedIds.forEach(id => {
+      dispatch({ type: 'UPDATE_ORGANIZATION', id, updates: { isAmbulant: false, isStationaer: false } });
+    });
+  };
+
+  const getCareTypeBadge = (org: Organization) => {
+    if (org.isAmbulant && org.isStationaer) {
+      return <Badge variant="default" className="gap-1 bg-purple-600"><Stethoscope className="w-3 h-3" /><Bed className="w-3 h-3" />A & S</Badge>;
+    } else if (org.isAmbulant) {
+      return <Badge variant="default" className="gap-1 bg-blue-600"><Stethoscope className="w-3 h-3" />Ambulant</Badge>;
+    } else if (org.isStationaer) {
+      return <Badge variant="default" className="gap-1 bg-green-600"><Bed className="w-3 h-3" />Stationär</Badge>;
+    } else {
+      return <Badge variant="outline">Offen</Badge>;
+    }
   };
 
   return (
@@ -99,26 +163,92 @@ const StepValidate: React.FC<StepValidateProps> = ({ type }) => {
         />
       </div>
 
+      {/* Massenaktionen - nur für Einrichtungen */}
+      {type === 'einrichtung' && selectedIds.size > 0 && (
+        <Card className="bg-accent/50">
+          <CardContent className="py-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <span className="text-sm font-medium">
+                {selectedIds.size} Einrichtung{selectedIds.size > 1 ? 'en' : ''} ausgewählt
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkToggleAmbulant}
+                  className="gap-1"
+                >
+                  <Stethoscope className="w-4 h-4" />
+                  Toggle Ambulant
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkToggleStationaer}
+                  className="gap-1"
+                >
+                  <Bed className="w-4 h-4" />
+                  Toggle Stationär
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBulkReset}
+                >
+                  Zurücksetzen
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Tabelle */}
       <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
+                {type === 'einrichtung' && (
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedIds.size === filteredOrgs.length && filteredOrgs.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
+                )}
                 <TableHead className="w-12">Geprüft</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Straße</TableHead>
                 <TableHead>PLZ</TableHead>
                 <TableHead>Stadt</TableHead>
+                {type === 'einrichtung' && <TableHead>Versorgung</TableHead>}
+                {type === 'traeger' && (
+                  <>
+                    <TableHead>Ansprechperson</TableHead>
+                    <TableHead>Telefon</TableHead>
+                    <TableHead>E-Mail</TableHead>
+                    <TableHead>Rechnung E-Mail</TableHead>
+                  </>
+                )}
+                {type === 'einrichtung' && <TableHead>Bewerbung E-Mail</TableHead>}
                 <TableHead className="text-right">Aktion</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredOrgs.map((org) => (
-                <TableRow 
+                <TableRow
                   key={org.id}
                   className={cn(org.isValidated && 'bg-success/10')}
                 >
+                  {type === 'einrichtung' && (
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.has(org.id)}
+                        onCheckedChange={() => toggleSelection(org.id)}
+                      />
+                    </TableCell>
+                  )}
                   <TableCell>
                     <Checkbox
                       checked={org.isValidated}
@@ -155,6 +285,76 @@ const StepValidate: React.FC<StepValidateProps> = ({ type }) => {
                           className="h-8"
                         />
                       </TableCell>
+                      {type === 'einrichtung' && (
+                        <TableCell>
+                          <div className="flex gap-2 items-center">
+                            <div className="flex items-center gap-1">
+                              <Checkbox
+                                checked={editForm.isAmbulant ?? false}
+                                onCheckedChange={(checked) =>
+                                  setEditForm({ ...editForm, isAmbulant: !!checked })
+                                }
+                              />
+                              <Label className="text-xs cursor-pointer">Ambulant</Label>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Checkbox
+                                checked={editForm.isStationaer ?? false}
+                                onCheckedChange={(checked) =>
+                                  setEditForm({ ...editForm, isStationaer: !!checked })
+                                }
+                              />
+                              <Label className="text-xs cursor-pointer">Stationär</Label>
+                            </div>
+                          </div>
+                        </TableCell>
+                      )}
+                      {type === 'traeger' && (
+                        <>
+                          <TableCell>
+                            <Input
+                              value={editForm.generalContactPerson || ''}
+                              onChange={(e) => setEditForm({ ...editForm, generalContactPerson: e.target.value })}
+                              placeholder="Ansprechperson"
+                              className="h-8"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={editForm.phone || ''}
+                              onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                              placeholder="Telefon"
+                              className="h-8"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={editForm.email || ''}
+                              onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                              placeholder="E-Mail"
+                              className="h-8"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={editForm.invoiceEmail || ''}
+                              onChange={(e) => setEditForm({ ...editForm, invoiceEmail: e.target.value })}
+                              placeholder="Rechnung E-Mail (mehrere mit ; oder , trennen)"
+                              className="h-8"
+                            />
+                          </TableCell>
+                        </>
+                      )}
+                      {type === 'einrichtung' && (
+                        <TableCell>
+                          <Input
+                            value={editForm.applicationEmail || ''}
+                            onChange={(e) => setEditForm({ ...editForm, applicationEmail: e.target.value })}
+                            placeholder="Bewerbung E-Mail (mehrere mit ; oder , trennen)"
+                            className="h-8"
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button variant="ghost" size="icon" onClick={cancelEditing}>
@@ -172,6 +372,30 @@ const StepValidate: React.FC<StepValidateProps> = ({ type }) => {
                       <TableCell className="text-muted-foreground">{org.street}</TableCell>
                       <TableCell className="text-muted-foreground">{org.zipCode}</TableCell>
                       <TableCell>{org.city}</TableCell>
+                      {type === 'einrichtung' && (
+                        <TableCell>{getCareTypeBadge(org)}</TableCell>
+                      )}
+                      {type === 'traeger' && (
+                        <>
+                          <TableCell className="text-muted-foreground">
+                            {org.generalContactPerson || '-'}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {org.phone || '-'}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {org.email || '-'}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {org.invoiceEmail || '-'}
+                          </TableCell>
+                        </>
+                      )}
+                      {type === 'einrichtung' && (
+                        <TableCell className="text-muted-foreground">
+                          {org.applicationEmail || '-'}
+                        </TableCell>
+                      )}
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button

@@ -137,8 +137,9 @@ export const getInitialState = (): WizardState => ({
 export const getClassificationStats = (organizations: Organization[]) => {
   const traeger = organizations.filter(o => o.type === 'traeger').length;
   const einrichtungen = organizations.filter(o => o.type === 'einrichtung').length;
+  const inaktiv = organizations.filter(o => o.type === 'inaktiv').length;
   const unclassified = organizations.filter(o => o.type === null).length;
-  return { traeger, einrichtungen, unclassified, total: organizations.length };
+  return { traeger, einrichtungen, inaktiv, unclassified, total: organizations.length };
 };
 
 export const getValidationStats = (organizations: Organization[], type: 'traeger' | 'einrichtung') => {
@@ -151,4 +152,24 @@ export const getAssignmentStats = (organizations: Organization[]) => {
   const einrichtungen = organizations.filter(o => o.type === 'einrichtung');
   const assigned = einrichtungen.filter(o => o.parentOrganizationId).length;
   return { assigned, total: einrichtungen.length };
+};
+
+export const getCareTypeStats = (organizations: Organization[]) => {
+  const einrichtungen = organizations.filter(o => o.type === 'einrichtung');
+  const nurAmbulant = einrichtungen.filter(o => o.isAmbulant && !o.isStationaer).length;
+  const nurStationaer = einrichtungen.filter(o => !o.isAmbulant && o.isStationaer).length;
+  const beides = einrichtungen.filter(o => o.isAmbulant && o.isStationaer).length;
+  const offen = einrichtungen.filter(o => !o.isAmbulant && !o.isStationaer).length;
+  
+  return {
+    nurAmbulant,
+    nurStationaer,
+    beides,
+    offen,
+    total: einrichtungen.length,
+    // Helper: Gesamtzahl mit ambulanter Versorgung
+    mitAmbulant: nurAmbulant + beides,
+    // Helper: Gesamtzahl mit stationärer Versorgung
+    mitStationaer: nurStationaer + beides,
+  };
 };

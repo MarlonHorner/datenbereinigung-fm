@@ -21,11 +21,18 @@ export type Database = {
           zip_code: string;
           city: string;
           status: string;
-          type: 'traeger' | 'einrichtung' | null;
+          type: 'traeger' | 'einrichtung' | 'inaktiv' | null;
+          is_ambulant: boolean;
+          is_stationaer: boolean;
           is_validated: boolean;
           parent_organization_id: string | null;
           company_id: string | null;
           archived_at: string | null;
+          general_contact_person: string | null;
+          phone: string | null;
+          email: string | null;
+          invoice_email: string | null;
+          application_email: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -36,11 +43,18 @@ export type Database = {
           zip_code: string;
           city: string;
           status?: string;
-          type?: 'traeger' | 'einrichtung' | null;
+          type?: 'traeger' | 'einrichtung' | 'inaktiv' | null;
+          is_ambulant?: boolean;
+          is_stationaer?: boolean;
           is_validated?: boolean;
           parent_organization_id?: string | null;
           company_id?: string | null;
           archived_at?: string | null;
+          general_contact_person?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          invoice_email?: string | null;
+          application_email?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -51,11 +65,18 @@ export type Database = {
           zip_code?: string;
           city?: string;
           status?: string;
-          type?: 'traeger' | 'einrichtung' | null;
+          type?: 'traeger' | 'einrichtung' | 'inaktiv' | null;
+          is_ambulant?: boolean;
+          is_stationaer?: boolean;
           is_validated?: boolean;
           parent_organization_id?: string | null;
           company_id?: string | null;
           archived_at?: string | null;
+          general_contact_person?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          invoice_email?: string | null;
+          application_email?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -63,24 +84,33 @@ export type Database = {
       contacts: {
         Row: {
           id: string;
-          name: string;
+          firstname: string;
+          lastname: string;
+          name: string; // Deprecated: kept for backward compatibility
           email: string;
+          note: string | null;
           department: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
-          name: string;
+          firstname: string;
+          lastname: string;
+          name?: string; // Deprecated: auto-generated from firstname + lastname
           email: string;
+          note?: string | null;
           department?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
+          firstname?: string;
+          lastname?: string;
           name?: string;
           email?: string;
+          note?: string | null;
           department?: string | null;
           created_at?: string;
           updated_at?: string;

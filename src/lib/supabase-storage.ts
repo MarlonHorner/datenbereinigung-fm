@@ -356,10 +356,19 @@ export async function updateOrganization(id: string, updates: Partial<Organizati
   if (updates.zipCode !== undefined) dbUpdates.zip_code = updates.zipCode;
   if (updates.city !== undefined) dbUpdates.city = updates.city;
   if (updates.type !== undefined) dbUpdates.type = updates.type;
+  if (updates.isAmbulant !== undefined) dbUpdates.is_ambulant = updates.isAmbulant;
+  if (updates.isStationaer !== undefined) dbUpdates.is_stationaer = updates.isStationaer;
   if (updates.isValidated !== undefined) dbUpdates.is_validated = updates.isValidated;
   if (updates.parentOrganizationId !== undefined) {
-    dbUpdates.parent_organization_id = updates.parentOrganizationId || null;
+    // Handle special case: "no-traeger" should be converted to null
+    const parentId = updates.parentOrganizationId;
+    dbUpdates.parent_organization_id = (parentId === 'no-traeger' || !parentId) ? null : parentId;
   }
+  if (updates.generalContactPerson !== undefined) dbUpdates.general_contact_person = updates.generalContactPerson || null;
+  if (updates.phone !== undefined) dbUpdates.phone = updates.phone || null;
+  if (updates.email !== undefined) dbUpdates.email = updates.email || null;
+  if (updates.invoiceEmail !== undefined) dbUpdates.invoice_email = updates.invoiceEmail || null;
+  if (updates.applicationEmail !== undefined) dbUpdates.application_email = updates.applicationEmail || null;
   
   dbUpdates.updated_at = new Date().toISOString();
 

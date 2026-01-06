@@ -146,7 +146,18 @@ const StepUpload = () => {
       // Hauptdatei verarbeiten
       let organizations = state.organizations;
       if (mainFile.rows.length > 0) {
-        const mapping = mainFile.columnMapping as { name: string; street: string; zipCode: string; city: string };
+        const mapping = mainFile.columnMapping as {
+          name: string;
+          street: string;
+          zipCode: string;
+          city: string;
+          careType?: string;
+          generalContactPerson?: string;
+          phone?: string;
+          email?: string;
+          invoiceEmail?: string;
+          applicationEmail?: string;
+        };
         
         if (!mapping.name || !mapping.street || !mapping.zipCode || !mapping.city) {
           setMainFile(prev => ({ ...prev, error: 'Bitte ordnen Sie alle Pflichtfelder zu.' }));
@@ -170,9 +181,21 @@ const StepUpload = () => {
       // Ansprechpersonen-Datei verarbeiten
       let contacts = state.contactPersons;
       if (contactFile.rows.length > 0) {
-        const mapping = contactFile.columnMapping as { name: string; email: string };
+        const mapping = contactFile.columnMapping as {
+          firstname?: string;
+          lastname?: string;
+          name?: string;
+          email: string;
+          note?: string
+        };
         
-        if (mapping.name && mapping.email) {
+        // Validiere: entweder firstname+lastname+email ODER name+email
+        const hasValidMapping = (
+          (mapping.firstname && mapping.lastname && mapping.email) ||
+          (mapping.name && mapping.email)
+        );
+        
+        if (hasValidMapping) {
           contacts = csvToContactPersons(contactFile.rows, mapping);
         }
       }
@@ -290,11 +313,11 @@ const StepUpload = () => {
 
               {/* Spalten-Zuordnung */}
               <div className="space-y-3">
-                <Label className="text-sm font-medium">Spaltenzuordnung</Label>
+                <Label className="text-sm font-medium">Spaltenzuordnung (Pflichtfelder)</Label>
                 {['name', 'street', 'zipCode', 'city'].map((field) => (
                   <div key={field} className="flex items-center gap-3">
-                    <span className="text-sm w-20 capitalize">
-                      {field === 'zipCode' ? 'PLZ' : 
+                    <span className="text-sm w-32 capitalize">
+                      {field === 'zipCode' ? 'PLZ' :
                        field === 'street' ? 'Straße' :
                        field === 'city' ? 'Stadt' : 'Name'}:
                     </span>
@@ -306,6 +329,39 @@ const StepUpload = () => {
                         <SelectValue placeholder="Spalte wählen..." />
                       </SelectTrigger>
                       <SelectContent>
+                        {mainFile.headers.map((h) => (
+                          <SelectItem key={h} value={h}>{h}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+                
+                <div className="pt-3 border-t">
+                  <Label className="text-sm font-medium text-muted-foreground">Optionale Felder</Label>
+                </div>
+                
+                {[
+                  { key: 'careType', label: 'Versorgungsart' },
+                  { key: 'generalContactPerson', label: 'Ansprechperson Allgemein' },
+                  { key: 'phone', label: 'Telefon' },
+                  { key: 'email', label: 'E-Mail' },
+                  { key: 'invoiceEmail', label: 'Rechnung E-Mail' },
+                  { key: 'applicationEmail', label: 'Bewerbung E-Mail' },
+                ].map(({ key, label }) => (
+                  <div key={key} className="flex items-center gap-3">
+                    <span className="text-sm w-48">
+                      {label}:
+                    </span>
+                    <Select
+                      value={mainFile.columnMapping[key] || '_none_'}
+                      onValueChange={(v) => updateColumnMapping(setMainFile, key, v === '_none_' ? '' : v)}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="(Optional) Spalte wählen..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none_">Keine Zuordnung</SelectItem>
                         {mainFile.headers.map((h) => (
                           <SelectItem key={h} value={h}>{h}</SelectItem>
                         ))}
@@ -335,7 +391,7 @@ const StepUpload = () => {
               Ansprechpersonen (Optional)
             </CardTitle>
             <CardDescription>
-              CSV mit Ansprechpersonen (Name, E-Mail)
+              CSV mit Ansprechpersonen (Vorname, Nachname, E-Mail, Notiz)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -386,19 +442,55 @@ const StepUpload = () => {
                 {/* Spalten-Zuordnung */}
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">Spaltenzuordnung</Label>
-                  {['name', 'email'].map((field) => (
-                    <div key={field} className="flex items-center gap-3">
-                      <span className="text-sm w-20">
-                        {field === 'email' ? 'E-Mail' : 'Name'}:
+                  <p className="text-xs text-muted-foreground">
+                    Entweder Vorname + Nachname ODER Name (wird automatisch gesplittet)
+                  </p>
+                  
+                  {[
+                    { key: 'firstname', label: 'Vorname' },
+                    { key: 'lastname', label: 'Nachname' },
+                    { key: 'name', label: 'Name (Fallback)' },
+                    { key: 'email', label: 'E-Mail (Pflicht)' },
+                  ].map(({ key, label }) => (
+                    <div key={key} className="flex items-center gap-3">
+                      <span className="text-sm w-32">
+                        {label}:
                       </span>
                       <Select
-                        value={contactFile.columnMapping[field] || ''}
-                        onValueChange={(v) => updateColumnMapping(setContactFile, field, v)}
+                        value={contactFile.columnMapping[key] || '_none_'}
+                        onValueChange={(v) => updateColumnMapping(setContactFile, key, v === '_none_' ? '' : v)}
                       >
                         <SelectTrigger className="flex-1">
                           <SelectValue placeholder="Spalte wählen..." />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="_none_">Keine Zuordnung</SelectItem>
+                          {contactFile.headers.map((h) => (
+                            <SelectItem key={h} value={h}>{h}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
+                  
+                  <div className="pt-3 border-t">
+                    <Label className="text-sm font-medium text-muted-foreground">Optionale Felder</Label>
+                  </div>
+                  
+                  {['note'].map((field) => (
+                    <div key={field} className="flex items-center gap-3">
+                      <span className="text-sm w-20">
+                        Notiz:
+                      </span>
+                      <Select
+                        value={contactFile.columnMapping[field] || '_none_'}
+                        onValueChange={(v) => updateColumnMapping(setContactFile, field, v === '_none_' ? '' : v)}
+                      >
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="(Optional) Spalte wählen..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="_none_">Keine Zuordnung</SelectItem>
                           {contactFile.headers.map((h) => (
                             <SelectItem key={h} value={h}>{h}</SelectItem>
                           ))}

@@ -6,19 +6,30 @@ export interface Organization {
   street: string;
   zipCode: string;
   city: string;
-  type: 'traeger' | 'einrichtung' | null;
+  type: 'traeger' | 'einrichtung' | 'inaktiv' | null;
+  isAmbulant: boolean;      // Bietet ambulante Versorgung (nur für Einrichtungen)
+  isStationaer: boolean;    // Bietet stationäre Versorgung (nur für Einrichtungen)
   isValidated: boolean;
   parentOrganizationId?: string;
   contactPersonIds: string[];
   heyflowIds: string[];
+  // Direkte Kontaktfelder für Einrichtungen
+  generalContactPerson?: string;  // Ansprechperson Allgemein
+  phone?: string;                 // Telefon
+  email?: string;                 // E-Mail
+  invoiceEmail?: string;          // Rechnung E-Mail
+  applicationEmail?: string;      // Bewerbung E-Mail
   createdAt: string;
   updatedAt: string;
 }
 
 export interface ContactPerson {
   id: string;
-  name: string;
+  firstname: string;
+  lastname: string;
+  name?: string; // Deprecated: kept for backward compatibility
   email: string;
+  note?: string;
   department?: string;
   createdAt: string;
   updatedAt: string;
@@ -29,6 +40,7 @@ export interface Heyflow {
   heyflowId: string;
   url: string;
   designation: string;
+  customer?: string;
   createdAt: string;
   updatedAt: string;
 }

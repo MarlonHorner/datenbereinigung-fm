@@ -16,10 +16,17 @@ export function dbToOrganization(dbOrg: DbOrganization): Organization {
     zipCode: dbOrg.zip_code,
     city: dbOrg.city,
     type: dbOrg.type,
+    isAmbulant: dbOrg.is_ambulant ?? false,
+    isStationaer: dbOrg.is_stationaer ?? false,
     isValidated: dbOrg.is_validated,
     parentOrganizationId: dbOrg.parent_organization_id || undefined,
     contactPersonIds: [], // Will be populated separately from join table
     heyflowIds: [], // Will be populated separately from join table
+    generalContactPerson: dbOrg.general_contact_person || undefined,
+    phone: dbOrg.phone || undefined,
+    email: dbOrg.email || undefined,
+    invoiceEmail: dbOrg.invoice_email || undefined,
+    applicationEmail: dbOrg.application_email || undefined,
     createdAt: dbOrg.created_at,
     updatedAt: dbOrg.updated_at,
   };
@@ -31,6 +38,12 @@ export function dbToOrganization(dbOrg: DbOrganization): Organization {
 export function organizationToDb(
   org: Organization
 ): Database['public']['Tables']['organizations']['Insert'] {
+  // Handle special case: "no-traeger" should be converted to null
+  let parentOrgId = org.parentOrganizationId;
+  if (parentOrgId === 'no-traeger' || parentOrgId === '' || !parentOrgId) {
+    parentOrgId = null;
+  }
+  
   return {
     id: org.id,
     name: org.name.trim() || 'Unbekannt', // Pflichtfeld - nie leer
@@ -38,8 +51,15 @@ export function organizationToDb(
     zip_code: org.zipCode.trim() || '', // Kann leer sein
     city: org.city.trim() || '', // Kann leer sein
     type: org.type,
+    is_ambulant: org.isAmbulant ?? false,
+    is_stationaer: org.isStationaer ?? false,
     is_validated: org.isValidated,
-    parent_organization_id: org.parentOrganizationId || null,
+    parent_organization_id: parentOrgId,
+    general_contact_person: org.generalContactPerson?.trim() || null,
+    phone: org.phone?.trim() || null,
+    email: org.email?.trim() || null,
+    invoice_email: org.invoiceEmail?.trim() || null,
+    application_email: org.applicationEmail?.trim() || null,
     status: 'in Bearbeitung', // Default status for new imports
     created_at: org.createdAt,
     updated_at: org.updatedAt,
@@ -52,8 +72,11 @@ export function organizationToDb(
 export function dbToContact(dbContact: DbContact): ContactPerson {
   return {
     id: dbContact.id,
-    name: dbContact.name,
+    firstname: dbContact.firstname || '',
+    lastname: dbContact.lastname || '',
+    name: dbContact.name, // Keep for backward compatibility
     email: dbContact.email,
+    note: dbContact.note || undefined,
     department: dbContact.department || undefined,
     createdAt: dbContact.created_at,
     updatedAt: dbContact.updated_at,
@@ -66,10 +89,16 @@ export function dbToContact(dbContact: DbContact): ContactPerson {
 export function contactToDb(
   contact: ContactPerson
 ): Database['public']['Tables']['contacts']['Insert'] {
+  // Generate full name from firstname + lastname for backward compatibility
+  const fullName = `${contact.firstname} ${contact.lastname}`.trim() || 'Unbekannt';
+  
   return {
     id: contact.id,
-    name: contact.name.trim() || 'Unbekannt',
+    firstname: contact.firstname.trim() || '',
+    lastname: contact.lastname.trim() || '',
+    name: fullName,
     email: contact.email.trim() || '',
+    note: contact.note?.trim() || null,
     department: contact.department?.trim() || null,
     created_at: contact.createdAt,
     updated_at: contact.updatedAt,
