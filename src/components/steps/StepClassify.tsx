@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Building2, Home, Search, Filter, CheckCircle2, Trash2, XCircle } from 'lucide-react';
+import { Building2, Home, Search, Filter, CheckCircle2, Trash2, XCircle, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,7 @@ import { getClassificationStats, deleteOrganization, deleteOrganizations } from 
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-type FilterType = 'all' | 'classified' | 'unclassified';
+type FilterType = 'all' | 'classified' | 'unclassified' | 'duplicates';
 
 const StepClassify = () => {
   const { state, dispatch } = useWizard();
@@ -25,22 +25,43 @@ const StepClassify = () => {
 
   const stats = useMemo(() => getClassificationStats(organizations), [organizations]);
 
+  // Doppelte Firmennamen erkennen
+  const duplicateNames = useMemo(() => {
+    const nameCount = new Map<string, number>();
+    organizations.forEach(org => {
+      const normalizedName = org.name.toLowerCase().trim();
+      nameCount.set(normalizedName, (nameCount.get(normalizedName) || 0) + 1);
+    });
+    return new Set(
+      Array.from(nameCount.entries())
+        .filter(([_, count]) => count > 1)
+        .map(([name, _]) => name)
+    );
+  }, [organizations]);
+
+  const duplicateCount = useMemo(() => {
+    return organizations.filter(org =>
+      duplicateNames.has(org.name.toLowerCase().trim())
+    ).length;
+  }, [organizations, duplicateNames]);
+
   const filteredOrganizations = useMemo(() => {
     return organizations.filter(org => {
       // Suchfilter
-      const matchesSearch = searchTerm === '' || 
+      const matchesSearch = searchTerm === '' ||
         org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         org.city.toLowerCase().includes(searchTerm.toLowerCase());
       
       // Statusfilter
-      const matchesFilter = 
+      const matchesFilter =
         filter === 'all' ||
         (filter === 'classified' && org.type !== null) ||
-        (filter === 'unclassified' && org.type === null);
+        (filter === 'unclassified' && org.type === null) ||
+        (filter === 'duplicates' && duplicateNames.has(org.name.toLowerCase().trim()));
       
       return matchesSearch && matchesFilter;
     });
-  }, [organizations, searchTerm, filter]);
+  }, [organizations, searchTerm, filter, duplicateNames]);
 
   const handleClassify = (id: string, type: 'traeger' | 'einrichtung' | 'inaktiv') => {
     const org = organizations.find(o => o.id === id);
@@ -122,7 +143,7 @@ const StepClassify = () => {
       </div>
 
       {/* Statistik-Karten */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         <Card>
           <CardContent className="pt-4">
             <div className="text-2xl font-bold text-foreground">{stats.total}</div>
@@ -151,6 +172,12 @@ const StepClassify = () => {
           <CardContent className="pt-4">
             <div className="text-2xl font-bold text-warning">{stats.unclassified}</div>
             <p className="text-sm text-muted-foreground">Nicht klassifiziert</p>
+          </CardContent>
+        </Card>
+        <Card className={cn(duplicateCount > 0 && "border-orange-500")}>
+          <CardContent className="pt-4">
+            <div className="text-2xl font-bold text-orange-600">{duplicateCount}</div>
+            <p className="text-sm text-muted-foreground">Duplikate</p>
           </CardContent>
         </Card>
       </div>
@@ -188,6 +215,12 @@ const StepClassify = () => {
             <SelectItem value="all">Alle anzeigen</SelectItem>
             <SelectItem value="classified">Klassifiziert</SelectItem>
             <SelectItem value="unclassified">Nicht klassifiziert</SelectItem>
+            <SelectItem value="duplicates">
+              <span className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-orange-600" />
+                Duplikate ({duplicateCount})
+              </span>
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -263,22 +296,30 @@ const StepClassify = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredOrganizations.map((org) => (
-                <TableRow 
-                  key={org.id}
-                  className={cn(
-                    org.type && 'bg-accent/30'
-                  )}
-                >
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedIds.has(org.id)}
-                      onCheckedChange={() => toggleSelection(org.id)}
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {org.name}
-                  </TableCell>
+              {filteredOrganizations.map((org) => {
+                const isDuplicate = duplicateNames.has(org.name.toLowerCase().trim());
+                return (
+                  <TableRow
+                    key={org.id}
+                    className={cn(
+                      org.type && 'bg-accent/30',
+                      isDuplicate && 'border-l-4 border-l-orange-500'
+                    )}
+                  >
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.has(org.id)}
+                        onCheckedChange={() => toggleSelection(org.id)}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {isDuplicate && (
+                          <AlertTriangle className="w-4 h-4 text-orange-600 flex-shrink-0" />
+                        )}
+                        {org.name}
+                      </div>
+                    </TableCell>
                   <TableCell className="hidden md:table-cell text-muted-foreground">
                     {org.street}
                   </TableCell>
@@ -358,7 +399,8 @@ const StepClassify = () => {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
