@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { EmailTagInput } from '@/components/ui/email-tag-input';
 import { useWizard } from '@/context/WizardContext';
 import { getValidationStats } from '@/lib/storage';
 import { cn } from '@/lib/utils';
@@ -352,22 +353,20 @@ const StepValidate: React.FC<StepValidateProps> = ({ type }) => {
                             />
                           </TableCell>
                           <TableCell>
-                            <Input
+                            <EmailTagInput
                               value={editForm.invoiceEmail || ''}
-                              onChange={(e) => setEditForm({ ...editForm, invoiceEmail: e.target.value })}
-                              placeholder="Rechnung E-Mail (mehrere mit ; oder , trennen)"
-                              className="h-8"
+                              onChange={(value) => setEditForm({ ...editForm, invoiceEmail: value })}
+                              placeholder="Rechnung E-Mail eingeben und Enter"
                             />
                           </TableCell>
                         </>
                       )}
                       {type === 'einrichtung' && (
                         <TableCell>
-                          <Input
+                          <EmailTagInput
                             value={editForm.applicationEmail || ''}
-                            onChange={(e) => setEditForm({ ...editForm, applicationEmail: e.target.value })}
-                            placeholder="Bewerbung E-Mail (mehrere mit ; oder , trennen)"
-                            className="h-8"
+                            onChange={(value) => setEditForm({ ...editForm, applicationEmail: value })}
+                            placeholder="Bewerbung E-Mail eingeben und Enter"
                           />
                         </TableCell>
                       )}
@@ -418,13 +417,25 @@ const StepValidate: React.FC<StepValidateProps> = ({ type }) => {
                             {org.email || '-'}
                           </TableCell>
                           <TableCell className="text-muted-foreground">
-                            {org.invoiceEmail || '-'}
+                            {org.invoiceEmail ? (
+                              <div className="flex flex-col gap-0.5">
+                                {org.invoiceEmail.split(/[;,]/).filter(e => e.trim()).map((email, idx) => (
+                                  <span key={idx} className="text-xs">{email.trim()}</span>
+                                ))}
+                              </div>
+                            ) : '-'}
                           </TableCell>
                         </>
                       )}
                       {type === 'einrichtung' && (
                         <TableCell className="text-muted-foreground">
-                          {org.applicationEmail || '-'}
+                          {org.applicationEmail ? (
+                            <div className="flex flex-col gap-0.5">
+                              {org.applicationEmail.split(/[;,]/).filter(e => e.trim()).map((email, idx) => (
+                                <span key={idx} className="text-xs">{email.trim()}</span>
+                              ))}
+                            </div>
+                          ) : '-'}
                         </TableCell>
                       )}
                       <TableCell className="text-right">

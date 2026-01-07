@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Building2, Home, Search, Filter, CheckCircle2, Trash2, XCircle, AlertTriangle, Info } from 'lucide-react';
+import { Building2, Home, Search, Filter, CheckCircle2, Trash2, XCircle, AlertTriangle, Info, Edit2, Check, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,8 @@ const StepClassify = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editedName, setEditedName] = useState('');
 
   const stats = useMemo(() => getClassificationStats(organizations), [organizations]);
 
@@ -108,6 +110,32 @@ const StepClassify = () => {
         console.error('Fehler beim Löschen:', error);
         toast.error('Fehler beim Löschen der Einträge');
       }
+    }
+  };
+
+  const startEditing = (id: string, currentName: string) => {
+    setEditingId(id);
+    setEditedName(currentName);
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditedName('');
+  };
+
+  const saveEditing = (id: string) => {
+    if (editedName.trim()) {
+      dispatch({ type: 'UPDATE_ORGANIZATION', id, updates: { name: editedName.trim() } });
+      toast.success('Name wurde aktualisiert');
+    }
+    cancelEditing();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, id: string) => {
+    if (e.key === 'Enter') {
+      saveEditing(id);
+    } else if (e.key === 'Escape') {
+      cancelEditing();
     }
   };
 
@@ -314,12 +342,49 @@ const StepClassify = () => {
                     </TableCell>
                     <TableCell className="font-medium">
                       <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          {isDuplicate && (
-                            <AlertTriangle className="w-4 h-4 text-orange-600 flex-shrink-0" />
-                          )}
-                          {org.name}
-                        </div>
+                        {editingId === org.id ? (
+                          <div className="flex items-center gap-1">
+                            <Input
+                              value={editedName}
+                              onChange={(e) => setEditedName(e.target.value)}
+                              onKeyDown={(e) => handleKeyDown(e, org.id)}
+                              onBlur={() => saveEditing(org.id)}
+                              className="h-8"
+                              autoFocus
+                            />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => saveEditing(org.id)}
+                            >
+                              <Check className="w-4 h-4 text-success" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={cancelEditing}
+                            >
+                              <X className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 group">
+                            {isDuplicate && (
+                              <AlertTriangle className="w-4 h-4 text-orange-600 flex-shrink-0" />
+                            )}
+                            <span>{org.name}</span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => startEditing(org.id, org.name)}
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
                         {org.mondayParentCompany && (
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Info className="w-3 h-3" />

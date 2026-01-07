@@ -152,6 +152,7 @@ const StepUpload = () => {
           zipCode: string;
           city: string;
           careType?: string;
+          mondayParentCompany?: string;
           generalContactPerson?: string;
           phone?: string;
           email?: string;
@@ -343,6 +344,7 @@ const StepUpload = () => {
                 
                 {[
                   { key: 'careType', label: 'Versorgungsart' },
+                  { key: 'mondayParentCompany', label: 'Monday Parent Company' },
                   { key: 'generalContactPerson', label: 'Ansprechperson Allgemein' },
                   { key: 'phone', label: 'Telefon' },
                   { key: 'email', label: 'E-Mail' },
