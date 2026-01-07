@@ -20,6 +20,7 @@ export function dbToOrganization(dbOrg: DbOrganization): Organization {
     isStationaer: dbOrg.is_stationaer ?? false,
     isValidated: dbOrg.is_validated,
     parentOrganizationId: dbOrg.parent_organization_id || undefined,
+    mondayParentCompany: dbOrg.monday_parent_company || undefined,
     contactPersonIds: [], // Will be populated separately from join table
     heyflowIds: [], // Will be populated separately from join table
     generalContactPerson: dbOrg.general_contact_person || undefined,
@@ -55,6 +56,7 @@ export function organizationToDb(
     is_stationaer: org.isStationaer ?? false,
     is_validated: org.isValidated,
     parent_organization_id: parentOrgId,
+    monday_parent_company: org.mondayParentCompany?.trim() || null,
     general_contact_person: org.generalContactPerson?.trim() || null,
     phone: org.phone?.trim() || null,
     email: org.email?.trim() || null,

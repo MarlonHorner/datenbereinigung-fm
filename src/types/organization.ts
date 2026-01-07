@@ -11,6 +11,7 @@ export interface Organization {
   isStationaer: boolean;    // Bietet stationäre Versorgung (nur für Einrichtungen)
   isValidated: boolean;
   parentOrganizationId?: string;
+  mondayParentCompany?: string;  // Parent Company aus Monday.com Import
   contactPersonIds: string[];
   heyflowIds: string[];
   // Direkte Kontaktfelder für Einrichtungen

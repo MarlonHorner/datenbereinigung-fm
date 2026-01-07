@@ -26,6 +26,7 @@ export type Database = {
           is_stationaer: boolean;
           is_validated: boolean;
           parent_organization_id: string | null;
+          monday_parent_company: string | null;
           company_id: string | null;
           archived_at: string | null;
           general_contact_person: string | null;
@@ -48,6 +49,7 @@ export type Database = {
           is_stationaer?: boolean;
           is_validated?: boolean;
           parent_organization_id?: string | null;
+          monday_parent_company?: string | null;
           company_id?: string | null;
           archived_at?: string | null;
           general_contact_person?: string | null;
@@ -70,6 +72,7 @@ export type Database = {
           is_stationaer?: boolean;
           is_validated?: boolean;
           parent_organization_id?: string | null;
+          monday_parent_company?: string | null;
           company_id?: string | null;
           archived_at?: string | null;
           general_contact_person?: string | null;

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, Check, Edit2, X, Save, Stethoscope, Bed } from 'lucide-react';
+import { Search, Check, Edit2, X, Save, Stethoscope, Bed, Info } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,6 +53,7 @@ const StepValidate: React.FC<StepValidateProps> = ({ type }) => {
       city: org.city,
       isAmbulant: org.isAmbulant,
       isStationaer: org.isStationaer,
+      mondayParentCompany: org.mondayParentCompany,
       // Kontaktfelder
       generalContactPerson: org.generalContactPerson,
       phone: org.phone,
@@ -222,7 +223,12 @@ const StepValidate: React.FC<StepValidateProps> = ({ type }) => {
                 <TableHead>Straße</TableHead>
                 <TableHead>PLZ</TableHead>
                 <TableHead>Stadt</TableHead>
-                {type === 'einrichtung' && <TableHead>Versorgung</TableHead>}
+                {type === 'einrichtung' && (
+                  <>
+                    <TableHead>Versorgung</TableHead>
+                    <TableHead>Monday Parent</TableHead>
+                  </>
+                )}
                 {type === 'traeger' && (
                   <>
                     <TableHead>Ansprechperson</TableHead>
@@ -286,28 +292,38 @@ const StepValidate: React.FC<StepValidateProps> = ({ type }) => {
                         />
                       </TableCell>
                       {type === 'einrichtung' && (
-                        <TableCell>
-                          <div className="flex gap-2 items-center">
-                            <div className="flex items-center gap-1">
-                              <Checkbox
-                                checked={editForm.isAmbulant ?? false}
-                                onCheckedChange={(checked) =>
-                                  setEditForm({ ...editForm, isAmbulant: !!checked })
-                                }
-                              />
-                              <Label className="text-xs cursor-pointer">Ambulant</Label>
+                        <>
+                          <TableCell>
+                            <div className="flex gap-2 items-center">
+                              <div className="flex items-center gap-1">
+                                <Checkbox
+                                  checked={editForm.isAmbulant ?? false}
+                                  onCheckedChange={(checked) =>
+                                    setEditForm({ ...editForm, isAmbulant: !!checked })
+                                  }
+                                />
+                                <Label className="text-xs cursor-pointer">Ambulant</Label>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Checkbox
+                                  checked={editForm.isStationaer ?? false}
+                                  onCheckedChange={(checked) =>
+                                    setEditForm({ ...editForm, isStationaer: !!checked })
+                                  }
+                                />
+                                <Label className="text-xs cursor-pointer">Stationär</Label>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Checkbox
-                                checked={editForm.isStationaer ?? false}
-                                onCheckedChange={(checked) =>
-                                  setEditForm({ ...editForm, isStationaer: !!checked })
-                                }
-                              />
-                              <Label className="text-xs cursor-pointer">Stationär</Label>
-                            </div>
-                          </div>
-                        </TableCell>
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              value={editForm.mondayParentCompany || ''}
+                              onChange={(e) => setEditForm({ ...editForm, mondayParentCompany: e.target.value })}
+                              placeholder="Monday Parent Company"
+                              className="h-8"
+                            />
+                          </TableCell>
+                        </>
                       )}
                       {type === 'traeger' && (
                         <>
@@ -368,12 +384,27 @@ const StepValidate: React.FC<StepValidateProps> = ({ type }) => {
                     </>
                   ) : (
                     <>
-                      <TableCell className="font-medium">{org.name}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex flex-col gap-1">
+                          <span>{org.name}</span>
+                          {type === 'einrichtung' && org.mondayParentCompany && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Info className="w-3 h-3" />
+                              <span>Monday Parent: {org.mondayParentCompany}</span>
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-muted-foreground">{org.street}</TableCell>
                       <TableCell className="text-muted-foreground">{org.zipCode}</TableCell>
                       <TableCell>{org.city}</TableCell>
                       {type === 'einrichtung' && (
-                        <TableCell>{getCareTypeBadge(org)}</TableCell>
+                        <>
+                          <TableCell>{getCareTypeBadge(org)}</TableCell>
+                          <TableCell className="text-muted-foreground text-xs">
+                            {org.mondayParentCompany || '-'}
+                          </TableCell>
+                        </>
                       )}
                       {type === 'traeger' && (
                         <>

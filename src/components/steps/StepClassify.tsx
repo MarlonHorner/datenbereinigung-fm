@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Building2, Home, Search, Filter, CheckCircle2, Trash2, XCircle, AlertTriangle } from 'lucide-react';
+import { Building2, Home, Search, Filter, CheckCircle2, Trash2, XCircle, AlertTriangle, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -313,11 +313,19 @@ const StepClassify = () => {
                       />
                     </TableCell>
                     <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        {isDuplicate && (
-                          <AlertTriangle className="w-4 h-4 text-orange-600 flex-shrink-0" />
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          {isDuplicate && (
+                            <AlertTriangle className="w-4 h-4 text-orange-600 flex-shrink-0" />
+                          )}
+                          {org.name}
+                        </div>
+                        {org.mondayParentCompany && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Info className="w-3 h-3" />
+                            <span>Monday Parent: {org.mondayParentCompany}</span>
+                          </div>
                         )}
-                        {org.name}
                       </div>
                     </TableCell>
                   <TableCell className="hidden md:table-cell text-muted-foreground">

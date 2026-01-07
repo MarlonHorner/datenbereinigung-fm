@@ -53,6 +53,7 @@ export const detectColumns = (headers: string[]): {
   zipCode?: string;
   city?: string;
   careType?: string;
+  mondayParentCompany?: string;
   generalContactPerson?: string;
   phone?: string;
   email?: string;
@@ -74,6 +75,7 @@ export const detectColumns = (headers: string[]): {
     zipCode: findColumn(['plz', 'postleitzahl', 'zip']),
     city: findColumn(['stadt', 'ort', 'city', 'gemeinde']),
     careType: findColumn(['versorgungsart', 'versorgung', 'care', 'typ', 'art']),
+    mondayParentCompany: findColumn(['monday parent company', 'parent company', 'monday_parent_company', 'parentcompany', 'träger', 'muttergesellschaft']),
     generalContactPerson: findColumn(['ansprechperson allgemein', 'ansprechperson', 'kontaktperson', 'general contact']),
     phone: findColumn(['telefon', 'phone', 'tel', 'telefonnummer']),
     email: findColumn(['e-mail', 'email', 'mail', 'e_mail']),
@@ -91,6 +93,7 @@ export const csvToOrganizations = (
     zipCode: string;
     city: string;
     careType?: string;
+    mondayParentCompany?: string;
     generalContactPerson?: string;
     phone?: string;
     email?: string;
@@ -122,6 +125,8 @@ export const csvToOrganizations = (
       isValidated: false,
       contactPersonIds: [],
       heyflowIds: [],
+      // Monday Parent Company aus CSV extrahieren
+      mondayParentCompany: columnMapping.mondayParentCompany ? row[columnMapping.mondayParentCompany]?.trim() || undefined : undefined,
       // Neue Kontaktfelder aus CSV extrahieren
       generalContactPerson: columnMapping.generalContactPerson ? row[columnMapping.generalContactPerson]?.trim() || undefined : undefined,
       phone: columnMapping.phone ? row[columnMapping.phone]?.trim() || undefined : undefined,
